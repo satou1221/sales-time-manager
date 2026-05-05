@@ -44,7 +44,7 @@
   <h1>&#128203; 業務時間管理</h1>
   <div id="header-user">
     <div id="header-name">---</div>
-    <div id="header-dept" style="font-size:.7rem;opacity:.7;">---</div>
+    <div id="header-dept">---</div>
   </div>
 </header>
 
@@ -53,75 +53,92 @@
 <!-- ホーム画面 -->
 <div id="page-home" class="page active">
 
-  <!-- 現在状態バー（コンパクト） -->
-  <div id="status-bar">
-    <div id="status-bar-left">
-      <div id="status-label">現在の業務</div>
-      <div id="status-work-type">業務未開始</div>
-      <span id="status-state" class="state-idle">待機中</span>
-    </div>
-    <div id="status-bar-right">
-      <div class="sb-item">
-        <span class="sb-label">開始時刻</span>
-        <span class="sb-value" id="status-start-time">--:--</span>
-      </div>
-      <div class="sb-item">
-        <span class="sb-label">経過時間</span>
-        <span class="sb-value" id="status-elapsed">--:--</span>
-      </div>
-      <div class="sb-item">
-        <span class="sb-label">本日通常</span>
-        <span class="sb-value" id="status-today-normal">0:00</span>
-      </div>
-      <div class="sb-item">
-        <span class="sb-label">時間外</span>
-        <span class="sb-value ot-color" id="status-today-ot">0:00</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- 本日の状態バナー（有給・休日） -->
+  <!-- 有給・休日バナー（必要時のみ表示） -->
   <div id="day-status-banner" class="hidden day-banner">
     <span id="day-status-text"></span>
     <span class="day-banner-sub">業務した場合は時間外扱い</span>
   </div>
 
-  <!-- 業務区分選択 -->
+  <!-- ① 現在の業務名 -->
+  <div id="home-work-name-block">
+    <div class="home-label">現在の業務</div>
+    <div id="home-work-name">業務未開始</div>
+  </div>
+
+  <!-- ② 経過時間 -->
+  <div id="home-elapsed-block">
+    <div class="home-label">経過時間</div>
+    <div id="home-elapsed">--:--</div>
+  </div>
+
+  <!-- ③ 状態バッジ -->
+  <div id="home-state-block">
+    <span id="home-state-badge" class="state-badge state-idle">待機中</span>
+  </div>
+
+  <!-- ④ 業務区分を選択 -->
   <div class="home-section">
     <div class="home-section-title">&#128196; 業務区分を選択</div>
     <div id="work-type-grid">
-      <button class="wt-btn" data-type="九電碍・点" onclick="selectWorkType(this)">九電碍・点</button>
-      <button class="wt-btn" data-type="九電管路" onclick="selectWorkType(this)">九電管路</button>
+      <button class="wt-btn" data-type="九電碍・点"   onclick="selectWorkType(this)">九電碍・点</button>
+      <button class="wt-btn" data-type="九電管路"     onclick="selectWorkType(this)">九電管路</button>
       <button class="wt-btn" data-type="他電力碍・点" onclick="selectWorkType(this)">他電力碍・点</button>
-      <button class="wt-btn" data-type="直送商" onclick="selectWorkType(this)">直送商</button>
-      <button class="wt-btn" data-type="在庫商" onclick="selectWorkType(this)">在庫商</button>
-      <button class="wt-btn" data-type="再エネ" onclick="selectWorkType(this)">再エネ</button>
-      <button class="wt-btn" data-type="TKD" onclick="selectWorkType(this)">TKD</button>
-      <button class="wt-btn" data-type="社内対応" onclick="selectWorkType(this)">社内対応</button>
+      <button class="wt-btn" data-type="直送商"       onclick="selectWorkType(this)">直送商</button>
+      <button class="wt-btn" data-type="在庫商"       onclick="selectWorkType(this)">在庫商</button>
+      <button class="wt-btn" data-type="再エネ"       onclick="selectWorkType(this)">再エネ</button>
+      <button class="wt-btn" data-type="TKD"          onclick="selectWorkType(this)">TKD</button>
+      <button class="wt-btn" data-type="社内対応"     onclick="selectWorkType(this)">社内対応</button>
       <button class="wt-btn party-btn" data-type="懇親会対応" onclick="selectWorkType(this)" style="grid-column:1/-1;">&#127867; 懇親会対応</button>
     </div>
   </div>
 
-  <!-- アクションボタン -->
+  <!-- ⑤ 操作ボタン -->
   <div class="home-section">
     <div class="home-section-title">&#9654; 操作</div>
     <div id="action-grid">
       <button class="action-btn btn-start"  id="btn-start"  onclick="startWork()">&#9654; 業務開始</button>
-      <button class="action-btn btn-end"    id="btn-end"    onclick="endWork()"   disabled>&#9632; 業務終了</button>
+      <button class="action-btn btn-end"    id="btn-end"    onclick="endWork()"    disabled>&#9632; 業務終了</button>
       <button class="action-btn btn-break"  id="btn-break"  onclick="startBreak()" disabled>&#9749; 休憩開始</button>
-      <button class="action-btn btn-resume" id="btn-resume" onclick="endBreak()"  disabled>&#9654; 業務再開</button>
-    </div>
-  </div>
-
-  <!-- 本日の記録 -->
-  <div class="home-section">
-    <div class="home-section-title">&#128203; 本日の記録</div>
-    <div id="today-records">
-      <div class="text-center text-sub text-sm" style="padding:8px;">記録なし</div>
+      <button class="action-btn btn-resume" id="btn-resume" onclick="endBreak()"   disabled>&#9654; 業務再開</button>
     </div>
   </div>
 
 </div><!-- /page-home -->
+
+<!-- 本日ページ -->
+<div id="page-today" class="page">
+  <!-- 本日集計 -->
+  <div class="card">
+    <div class="card-title">&#128197; 本日の集計</div>
+    <div id="today-date-label" class="today-date-label"></div>
+    <div class="summary-grid" id="today-summary">
+      <div class="summary-item">
+        <div class="s-label">通常業務</div>
+        <div class="s-value" id="today-sum-normal">0:00</div>
+      </div>
+      <div class="summary-item">
+        <div class="s-label">時間外</div>
+        <div class="s-value" id="today-sum-ot" style="color:#e53935;">0:00</div>
+      </div>
+      <div class="summary-item">
+        <div class="s-label">休憩</div>
+        <div class="s-value" id="today-sum-break" style="color:#e65100;">0:00</div>
+      </div>
+      <div class="summary-item">
+        <div class="s-label">懇親会</div>
+        <div class="s-value" id="today-sum-party" style="color:#6a1b9a;">0:00</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 本日の履歴 -->
+  <div class="card">
+    <div class="card-title">&#128203; 本日の履歴</div>
+    <div id="today-history-list">
+      <div class="text-center text-sub text-sm" style="padding:16px;">記録なし</div>
+    </div>
+  </div>
+</div><!-- /page-today -->
 
 <!-- 月次一覧画面 -->
 <div id="page-monthly" class="page">
@@ -241,16 +258,19 @@
   </div>
 
   <div style="text-align:center;color:var(--text-sub);font-size:.7rem;padding:16px 0;">
-    営業部 業務時間管理 v1.1<br>データはこの端末のみに保存されます
+    営業部 業務時間管理 v1.2<br>データはこの端末のみに保存されます
   </div>
 </div><!-- /page-settings -->
 
-<!-- ===== ナビゲーション ===== -->
+<!-- ===== ナビゲーション（4タブ） ===== -->
 <nav id="nav-bar">
-  <button class="nav-btn active" id="nav-home" onclick="showPage('home')">
+  <button class="nav-btn active" id="nav-home"     onclick="showPage('home')">
     <span class="nav-icon">&#127968;</span>ホーム
   </button>
-  <button class="nav-btn" id="nav-monthly" onclick="showPage('monthly')">
+  <button class="nav-btn" id="nav-today"    onclick="showPage('today')">
+    <span class="nav-icon">&#128203;</span>本日
+  </button>
+  <button class="nav-btn" id="nav-monthly"  onclick="showPage('monthly')">
     <span class="nav-icon">&#128197;</span>月次
   </button>
   <button class="nav-btn" id="nav-settings" onclick="showPage('settings')">
@@ -293,8 +313,8 @@
       <input type="text" id="edit-memo" class="form-input" placeholder="例：客先対応、移動、見積など">
     </div>
     <div class="modal-actions">
-      <button class="btn btn-gray" onclick="closeEditModal()">キャンセル</button>
-      <button class="btn btn-danger" onclick="deleteRecord()">削除</button>
+      <button class="btn btn-gray"    onclick="closeEditModal()">キャンセル</button>
+      <button class="btn btn-danger"  onclick="deleteRecord()">削除</button>
       <button class="btn btn-primary" onclick="saveEdit()">保存</button>
     </div>
   </div>
