@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a237e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="業務時間">
+  <title>営業部 業務時間管理</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body>
+
+<!-- ===== 初期設定画面 ===== -->
+<div id="setup-screen">
+  <h2>&#128203; 初期設定</h2>
+  <p>アプリを使用する前に、あなたの情報を登録してください。</p>
+  <div class="form-group">
+    <label class="form-label">氏名 *</label>
+    <input type="text" id="setup-name" class="form-input" placeholder="例：山田 太郎">
+  </div>
+  <div class="form-group">
+    <label class="form-label">部門 *</label>
+    <input type="text" id="setup-dept" class="form-input" placeholder="例：営業1課">
+  </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label class="form-label">始業時間</label>
+      <input type="time" id="setup-start" class="form-input" value="08:30">
+    </div>
+    <div class="form-group">
+      <label class="form-label">終業時間</label>
+      <input type="time" id="setup-end" class="form-input" value="17:30">
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="saveSetup()" style="background:#43a047;margin-top:8px;">登録して開始</button>
+</div>
+
+<!-- ===== アプリヘッダー ===== -->
+<header id="app-header">
+  <h1>&#128203; 業務時間管理</h1>
+  <div id="header-user">
+    <div id="header-name">---</div>
+    <div id="header-dept" style="font-size:.7rem;opacity:.7;">---</div>
+  </div>
+</header>
+
+<!-- ===== ページコンテナ ===== -->
+
+<!-- ホーム画面 -->
+<div id="page-home" class="page active">
+
+  <!-- 現在状態カード -->
+  <div id="status-card">
+    <div id="status-label">現在の業務</div>
+    <div id="status-work-type">業務未開始</div>
+    <div>
+      <span id="status-state" class="state-idle">待機中</span>
+    </div>
+    <div id="status-grid">
+      <div class="status-item">
+        <div class="s-label">開始時刻</div>
+        <div class="s-value" id="status-start-time">--:--</div>
+      </div>
+      <div class="status-item">
+        <div class="s-label">経過時間</div>
+        <div class="s-value" id="status-elapsed">--:--</div>
+      </div>
+      <div class="status-item">
+        <div class="s-label">本日 通常業務</div>
+        <div class="s-value" id="status-today-normal">0:00</div>
+      </div>
+      <div class="status-item">
+        <div class="s-label">本日 時間外</div>
+        <div class="s-value" id="status-today-ot">0:00</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 本日の状態バナー（有給・休日） -->
+  <div id="day-status-banner" class="hidden card" style="background:#fff3e0;border-left:4px solid #e65100;">
+    <div id="day-status-text" style="font-weight:700;color:#e65100;"></div>
+    <div style="font-size:.75rem;color:#bf360c;margin-top:4px;">業務した場合は時間外扱いになります</div>
+  </div>
+
+  <!-- 業務区分選択 -->
+  <div class="card">
+    <div class="card-title">&#128196; 業務区分を選択</div>
+    <div id="work-type-grid">
+      <button class="wt-btn" data-type="九電碍・点" onclick="selectWorkType(this)">九電碍・点</button>
+      <button class="wt-btn" data-type="九電管路" onclick="selectWorkType(this)">九電管路</button>
+      <button class="wt-btn" data-type="他電力碍・点" onclick="selectWorkType(this)">他電力碍・点</button>
+      <button class="wt-btn" data-type="直送商" onclick="selectWorkType(this)">直送商</button>
+      <button class="wt-btn" data-type="在庫商" onclick="selectWorkType(this)">在庫商</button>
+      <button class="wt-btn" data-type="再エネ" onclick="selectWorkType(this)">再エネ</button>
+      <button class="wt-btn" data-type="TKD" onclick="selectWorkType(this)">TKD</button>
+      <button class="wt-btn" data-type="社内対応" onclick="selectWorkType(this)">社内対応</button>
+      <button class="wt-btn party-btn" data-type="懇親会対応" onclick="selectWorkType(this)" style="grid-column:1/-1;">&#127867; 懇親会対応</button>
+    </div>
+  </div>
+
+  <!-- アクションボタン -->
+  <div class="card">
+    <div class="card-title">&#9654; 操作</div>
+    <div id="action-grid">
+      <button class="action-btn btn-start"  id="btn-start"  onclick="startWork()">&#9654; 業務開始</button>
+      <button class="action-btn btn-end"    id="btn-end"    onclick="endWork()"   disabled>&#9632; 業務終了</button>
+      <button class="action-btn btn-break"  id="btn-break"  onclick="startBreak()" disabled>&#9749; 休憩開始</button>
+      <button class="action-btn btn-resume" id="btn-resume" onclick="endBreak()"  disabled>&#9654; 業務再開</button>
+    </div>
+  </div>
+
+  <!-- 本日の記録 -->
+  <div class="card">
+    <div class="card-title">&#128203; 本日の記録</div>
+    <div id="today-records">
+      <div class="text-center text-sub text-sm" style="padding:16px;">記録なし</div>
+    </div>
+  </div>
+
+</div><!-- /page-home -->
+
+<!-- 月次一覧画面 -->
+<div id="page-monthly" class="page">
+  <div class="card">
+    <div id="month-selector">
+      <button onclick="changeMonth(-1)">&#9664;</button>
+      <div id="month-display">---</div>
+      <button onclick="changeMonth(1)">&#9654;</button>
+    </div>
+
+    <!-- 月次集計サマリー -->
+    <div class="summary-grid" id="monthly-summary">
+      <div class="summary-item">
+        <div class="s-label">総業務時間</div>
+        <div class="s-value" id="sum-total">0:00</div>
+      </div>
+      <div class="summary-item">
+        <div class="s-label">通常業務</div>
+        <div class="s-value" id="sum-normal">0:00</div>
+      </div>
+      <div class="summary-item">
+        <div class="s-label">時間外</div>
+        <div class="s-value" id="sum-ot" style="color:#e53935;">0:00</div>
+      </div>
+      <div class="summary-item">
+        <div class="s-label">休憩時間</div>
+        <div class="s-value" id="sum-break" style="color:#e65100;">0:00</div>
+      </div>
+      <div class="summary-item" style="grid-column:1/-1;">
+        <div class="s-label">懇親会対応</div>
+        <div class="s-value" id="sum-party" style="color:#6a1b9a;">0:00</div>
+      </div>
+    </div>
+
+    <!-- 業務区分別集計 -->
+    <div id="wt-summary-section">
+      <div class="card-title" style="margin-bottom:8px;">&#128200; 業務区分別</div>
+      <div id="wt-summary-list"></div>
+    </div>
+
+    <div class="section-sep"></div>
+    <button class="btn btn-csv" onclick="exportCSV()">&#128190; CSV出力（LINE WORKSで送信）</button>
+  </div>
+
+  <!-- 日別記録 -->
+  <div class="card">
+    <div class="card-title">&#128197; 日別記録</div>
+    <div id="monthly-records">
+      <div class="text-center text-sub text-sm" style="padding:16px;">記録なし</div>
+    </div>
+  </div>
+</div><!-- /page-monthly -->
+
+<!-- 設定画面 -->
+<div id="page-settings" class="page">
+  <!-- ユーザー設定 -->
+  <div class="card">
+    <div class="card-title">&#128100; ユーザー設定</div>
+    <div class="form-group">
+      <label class="form-label">氏名</label>
+      <input type="text" id="cfg-name" class="form-input" placeholder="氏名">
+    </div>
+    <div class="form-group">
+      <label class="form-label">部門</label>
+      <input type="text" id="cfg-dept" class="form-input" placeholder="例：営業1課">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">始業時間</label>
+        <input type="time" id="cfg-start" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">終業時間</label>
+        <input type="time" id="cfg-end" class="form-input">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="saveUserConfig()">設定を保存</button>
+  </div>
+
+  <!-- 本日の状態設定 -->
+  <div class="card">
+    <div class="card-title">&#128197; 本日の状態設定</div>
+    <div class="form-group">
+      <label class="form-label">本日の状態</label>
+      <select id="cfg-day-status" class="form-input">
+        <option value="normal">通常勤務</option>
+        <option value="paid">有給休暇</option>
+        <option value="hourly">時間休暇</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="saveDayStatus()">本日の状態を設定</button>
+  </div>
+
+  <!-- 祝日設定 -->
+  <div class="card">
+    <div class="card-title">&#127974; 祝日・特別休日設定</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">日付を追加</label>
+        <input type="date" id="holiday-date" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">名称</label>
+        <input type="text" id="holiday-name" class="form-input" placeholder="例：元日">
+      </div>
+    </div>
+    <button class="btn btn-primary mt-8" onclick="addHoliday()">祝日を追加</button>
+    <div class="section-sep"></div>
+    <div class="holiday-list" id="holiday-list"></div>
+  </div>
+
+  <!-- データ管理 -->
+  <div class="card">
+    <div class="card-title">&#128190; データ管理</div>
+    <button class="btn btn-gray full-w" onclick="exportAllData()" style="margin-bottom:8px;">全データをJSONでバックアップ</button>
+    <button class="btn" style="background:#e53935;color:#fff;width:100%;" onclick="clearAllData()">&#9888; 全データを削除（初期化）</button>
+  </div>
+
+  <div style="text-align:center;color:var(--text-sub);font-size:.7rem;padding:16px 0;">
+    営業部 業務時間管理 v1.0<br>データはこの端末のみに保存されます
+  </div>
+</div><!-- /page-settings -->
+
+<!-- ===== ナビゲーション ===== -->
+<nav id="nav-bar">
+  <button class="nav-btn active" id="nav-home" onclick="showPage('home')">
+    <span class="nav-icon">&#127968;</span>ホーム
+  </button>
+  <button class="nav-btn" id="nav-monthly" onclick="showPage('monthly')">
+    <span class="nav-icon">&#128197;</span>月次
+  </button>
+  <button class="nav-btn" id="nav-settings" onclick="showPage('settings')">
+    <span class="nav-icon">&#9881;</span>設定
+  </button>
+</nav>
+
+<!-- ===== 記録修正モーダル ===== -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal-box">
+    <div class="modal-title">&#9999; 記録を修正</div>
+    <input type="hidden" id="edit-record-id">
+    <div class="form-group">
+      <label class="form-label">業務区分</label>
+      <select id="edit-type" class="form-input">
+        <option>九電碍・点</option>
+        <option>九電管路</option>
+        <option>他電力碍・点</option>
+        <option>直送商</option>
+        <option>在庫商</option>
+        <option>再エネ</option>
+        <option>TKD</option>
+        <option>社内対応</option>
+        <option>懇親会対応</option>
+        <option>休憩</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">開始日時</label>
+        <input type="datetime-local" id="edit-start" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">終了日時</label>
+        <input type="datetime-local" id="edit-end" class="form-input">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">メモ</label>
+      <input type="text" id="edit-memo" class="form-input" placeholder="例：客先対応、移動、見積など">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="closeEditModal()">キャンセル</button>
+      <button class="btn btn-danger" onclick="deleteRecord()">削除</button>
+      <button class="btn btn-primary" onclick="saveEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 月次日別詳細モーダル ===== -->
+<div class="modal-overlay" id="day-detail-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="day-detail-title">日別詳細</div>
+    <div id="day-detail-records"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeDayDetailModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== トースト ===== -->
+<div id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
