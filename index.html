@@ -76,30 +76,29 @@
     <span id="home-state-badge" class="state-badge state-idle">待機中</span>
   </div>
 
-  <!-- ④ 業務区分を選択 -->
+  <!-- ④ 業務区分（タップで即開始） -->
   <div class="home-section">
-    <div class="home-section-title">&#128196; 業務区分を選択</div>
+    <div class="home-section-title">&#128196; 業務区分（タップで開始）</div>
     <div id="work-type-grid">
-      <button class="wt-btn" data-type="九電碍・点"   onclick="selectWorkType(this)">九電碍・点</button>
-      <button class="wt-btn" data-type="九電管路"     onclick="selectWorkType(this)">九電管路</button>
-      <button class="wt-btn" data-type="他電力碍・点" onclick="selectWorkType(this)">他電力碍・点</button>
-      <button class="wt-btn" data-type="直送商"       onclick="selectWorkType(this)">直送商</button>
-      <button class="wt-btn" data-type="在庫商"       onclick="selectWorkType(this)">在庫商</button>
-      <button class="wt-btn" data-type="再エネ"       onclick="selectWorkType(this)">再エネ</button>
-      <button class="wt-btn" data-type="TKD"          onclick="selectWorkType(this)">TKD</button>
-      <button class="wt-btn" data-type="社内対応"     onclick="selectWorkType(this)">社内対応</button>
-      <button class="wt-btn party-btn" data-type="懇親会対応" onclick="selectWorkType(this)" style="grid-column:1/-1;">&#127867; 懇親会対応</button>
+      <button class="wt-btn" data-type="九電碍・点"   onclick="tapWorkType(this)">九電碍・点</button>
+      <button class="wt-btn" data-type="九電管路"     onclick="tapWorkType(this)">九電管路</button>
+      <button class="wt-btn" data-type="他電力碍・点" onclick="tapWorkType(this)">他電力碍・点</button>
+      <button class="wt-btn" data-type="直送商"       onclick="tapWorkType(this)">直送商</button>
+      <button class="wt-btn" data-type="在庫商"       onclick="tapWorkType(this)">在庫商</button>
+      <button class="wt-btn" data-type="再エネ"       onclick="tapWorkType(this)">再エネ</button>
+      <button class="wt-btn" data-type="TKD"          onclick="tapWorkType(this)">TKD</button>
+      <button class="wt-btn" data-type="社内対応"     onclick="tapWorkType(this)">社内対応</button>
+      <button class="wt-btn party-btn" data-type="懇親会対応" onclick="tapWorkType(this)" style="grid-column:1/-1;">&#127867; 懇親会対応</button>
     </div>
   </div>
 
-  <!-- ⑤ 操作ボタン -->
+  <!-- ⑤ 操作ボタン（業務終了・休憩・再開のみ） -->
   <div class="home-section">
     <div class="home-section-title">&#9654; 操作</div>
     <div id="action-grid">
-      <button class="action-btn btn-start"  id="btn-start"  onclick="startWork()">&#9654; 業務開始</button>
       <button class="action-btn btn-end"    id="btn-end"    onclick="endWork()"    disabled>&#9632; 業務終了</button>
       <button class="action-btn btn-break"  id="btn-break"  onclick="startBreak()" disabled>&#9749; 休憩開始</button>
-      <button class="action-btn btn-resume" id="btn-resume" onclick="endBreak()"   disabled>&#9654; 業務再開</button>
+      <button class="action-btn btn-resume" id="btn-resume" onclick="endBreak()"   disabled style="grid-column:1/-1;">&#9654; 業務再開</button>
     </div>
   </div>
 

@@ -215,11 +215,14 @@ html, body {
   color: var(--white);
 }
 
-/* ⑤ 操作ボタン */
+/* ⑥ 操作ボタン */
 #action-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
+}
+#btn-resume {
+  grid-column: 1 / -1;
 }
 .action-btn {
   border: none;

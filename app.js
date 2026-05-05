@@ -194,26 +194,22 @@ function updateElapsed() {
 // 操作ボタン状態更新
 // ============================================================
 function updateActionButtons() {
-  const btnStart  = document.getElementById('btn-start');
   const btnEnd    = document.getElementById('btn-end');
   const btnBreak  = document.getElementById('btn-break');
   const btnResume = document.getElementById('btn-resume');
 
   if (!activeSession) {
-    // 待機中
-    btnStart.disabled  = !selectedWorkType;
+    // 待機中：全て無効
     btnEnd.disabled    = true;
     btnBreak.disabled  = true;
     btnResume.disabled = true;
   } else if (activeSession.type === BREAK_TYPE) {
-    // 休憩中
-    btnStart.disabled  = true;
+    // 休憩中：業務再開のみ有効
     btnEnd.disabled    = true;
     btnBreak.disabled  = true;
     btnResume.disabled = false;
   } else {
-    // 業務中
-    btnStart.disabled  = true;
+    // 業務中：終了・休憩のみ有効
     btnEnd.disabled    = false;
     btnBreak.disabled  = false;
     btnResume.disabled = true;
@@ -221,39 +217,51 @@ function updateActionButtons() {
 }
 
 // ============================================================
-// 業務区分選択
+// 業務区分タップ＝即業務開始（1タップ操作）
 // ============================================================
-function selectWorkType(btn) {
-  if (activeSession && activeSession.type !== BREAK_TYPE) {
-    const confirmed = confirm(`現在の「${activeSession.workType}」を終了して「${btn.dataset.type}」を開始しますか？`);
-    if (!confirmed) return;
+function tapWorkType(btn) {
+  const newType = btn.dataset.type;
+
+  // 休憩中の場合：休憩を終了して新しい業務を開始
+  if (activeSession && activeSession.type === BREAK_TYPE) {
     endCurrentSession();
+    _startNewWork(newType, btn);
+    return;
   }
-  selectedWorkType = btn.dataset.type;
-  document.querySelectorAll('.wt-btn').forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
-  updateActionButtons();
+
+  // 同じ業務区分をタップした場合：何もしない（誤タップ防止）
+  if (activeSession && activeSession.workType === newType) {
+    showToast(`「${newType}」は現在進行中です`);
+    return;
+  }
+
+  // 別の業務が進行中の場合：前の業務を自動終了して新しい業務を開始
+  if (activeSession) {
+    const prevType = activeSession.workType;
+    endCurrentSession();
+    showToast(`「${prevType}」を終了しました`);
+  }
+
+  _startNewWork(newType, btn);
 }
 
-// ============================================================
-// 業務開始
-// ============================================================
-function startWork() {
-  if (!selectedWorkType) { showToast('業務区分を選択してください'); return; }
-  if (activeSession)     { showToast('業務中です。先に終了してください'); return; }
-
+function _startNewWork(workType, btn) {
   const now = new Date();
   activeSession = {
     id:        genId(),
-    workType:  selectedWorkType,
-    type:      selectedWorkType === PARTY_TYPE ? PARTY_TYPE : 'work',
+    workType:  workType,
+    type:      workType === PARTY_TYPE ? PARTY_TYPE : 'work',
     startTime: now.toISOString(),
     memo:      ''
   };
   saveActive();
+  selectedWorkType = workType;
+  document.querySelectorAll('.wt-btn').forEach(b => b.classList.remove('selected'));
+  if (btn) btn.classList.add('selected');
   updateHomeStatus();
   updateElapsed();
-  showToast(`「${selectedWorkType}」を開始しました`);
+  if (currentPage === 'today') renderTodayPage();
+  showToast(`「${workType}」を開始しました`);
 }
 
 // ============================================================
