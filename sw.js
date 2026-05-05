@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sales-time-v2';
+const CACHE_NAME = 'sales-time-v3';
 const ASSETS = [
   './index.html',
   './app.js',
@@ -22,8 +22,16 @@ self.addEventListener('activate', (e) => {
   self.clients.claim();
 });
 
+// ネットワーク優先（失敗時のみキャッシュ）
 self.addEventListener('fetch', (e) => {
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    fetch(e.request)
+      .then(response => {
+        // 成功したらキャッシュも更新
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+        return response;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
