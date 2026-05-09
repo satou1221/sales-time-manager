@@ -451,6 +451,7 @@ function renderTodayPage() {
   const sumBreak  = todayRecs.reduce((s,r) => s + (r.breakMin||0), 0);
   const sumParty  = todayRecs.reduce((s,r) => s + (r.partyMin||0), 0);
 
+  // 5つの区分を正確に表示
   document.getElementById('today-sum-normal').textContent = fmtMin(sumNormal);
   document.getElementById('today-sum-ot').textContent     = fmtMin(sumOT);
   document.getElementById("today-sum-break").textContent  = fmtMin(sumBreak);
@@ -517,11 +518,12 @@ function renderMonthlyPage() {
 
   const monthRecs = records.filter(r => r.date && r.date.startsWith(ym));
 
-    const totalNormal = monthRecs.reduce((s,r) => s + (r.normalMin||0), 0);
-    const totalOT     = monthRecs.reduce((s,r) => s + (r.otMin||0), 0);
-    const totalVacation = monthRecs.reduce((s,r) => s + (r.vacationMin||0), 0);
-    const totalBreak  = monthRecs.reduce((s,r) => s + (r.breakMin||0), 0);
-    const totalParty  = monthRecs.reduce((s,r) => s + (r.partyMin||0), 0);
+  // 5つの区分を正確に集計
+  const totalNormal = monthRecs.reduce((s,r) => s + (r.normalMin||0), 0);
+  const totalOT     = monthRecs.reduce((s,r) => s + (r.otMin||0), 0);
+  const totalVacation = monthRecs.reduce((s,r) => s + (r.vacationMin||0), 0);
+  const totalBreak  = monthRecs.reduce((s,r) => s + (r.breakMin||0), 0);
+  const totalParty  = monthRecs.reduce((s,r) => s + (r.partyMin||0), 0);
   const totalAll    = totalNormal + totalOT;
 
   document.getElementById('sum-total').textContent  = fmtMin(totalAll);
