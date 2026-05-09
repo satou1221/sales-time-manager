@@ -32,6 +32,7 @@ let dayStatuses      = [];
 let elapsedTimer     = null;
 let currentPage      = 'home';
 let viewMonth        = { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
+let settingsMonth    = { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
 let selectedWorkType = null;
 
 // ============================================================
