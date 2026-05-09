@@ -762,9 +762,11 @@ function exportCSV() {
   const fileName = `業務時間_${currentUser ? currentUser.name : 'data'}_${ym}.csv`;
   const blob     = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
 
-  // Web Share API が利用可能な場合（スマホブラウザなど）
-  if (navigator.canShare && navigator.share) {
-    const file = new File([blob], fileName, { type: 'text/csv' });
+  // Web Share API の詳細な判定
+  const file = new File([blob], fileName, { type: 'text/csv' });
+  const canShare = navigator.canShare && navigator.canShare({ files: [file] });
+
+  if (canShare && navigator.share) {
     navigator.share({
       files: [file],
       title: '業務時間記録',
@@ -773,13 +775,14 @@ function exportCSV() {
       showToast('共有メニューを開きました');
     }).catch((err) => {
       console.error('Share failed:', err);
-      // ユーザーキャンセル以外の場合はフォールバック
+      // ユーザーキャンセル(AbortError)以外、または共有失敗時はフォールバック
       if (err.name !== 'AbortError') {
         fallbackDownload(blob, fileName);
       }
     });
   } else {
-    // PCブラウザなどのフォールバック
+    // 共有機能が使えない、またはファイル共有非対応の場合
+    console.log('Web Share API (files) not supported');
     fallbackDownload(blob, fileName);
   }
 }
