@@ -101,7 +101,7 @@ function initApp() {
   updateHomeStatus();
   startElapsedTimer();
   updateDayStatusBanner();
-  renderHolidayList();
+  renderSettingsCalendar();
   loadSettingsForm();
   showPage('home');
 }
@@ -385,7 +385,7 @@ function isHolidayOrSpecial(dateStr) {
   if (dow === 0 || dow === 6) return true;
   if (holidays.some(h => h.date === dateStr)) return true;
   const ds = dayStatuses.find(s => s.date === dateStr);
-  if (ds && (ds.status === 'paid' || ds.status === 'hourly')) return true;
+  if (ds && (ds.status === 'paid' || ds.status === 'hourly' || ds.status === 'holiday')) return true;
   return false;
 }
 
@@ -407,6 +407,9 @@ function updateDayStatusBanner() {
   } else if (ds && ds.status === 'hourly') {
     banner.classList.remove('hidden');
     text.textContent = '本日は時間休暇日です';
+  } else if (ds && ds.status === 'holiday') {
+    banner.classList.remove('hidden');
+    text.textContent = '本日は特別休日です';
   } else if (dow === 0 || dow === 6) {
     banner.classList.remove('hidden');
     text.textContent = dow === 0 ? '本日は日曜日（休日）です' : '本日は土曜日（休日）です';
@@ -416,19 +419,6 @@ function updateDayStatusBanner() {
   } else {
     banner.classList.add('hidden');
   }
-}
-
-// ============================================================
-// 本日の状態設定（有給・時間休暇）
-// ============================================================
-function saveDayStatus() {
-  const today  = toDateStr(new Date());
-  const status = document.getElementById('cfg-day-status').value;
-  dayStatuses  = dayStatuses.filter(s => s.date !== today);
-  dayStatuses.push({ date: today, status });
-  saveDayStatuses();
-  updateDayStatusBanner();
-  showToast('本日の状態を設定しました');
 }
 
 // ============================================================
@@ -584,8 +574,8 @@ function renderMonthlyRecords(monthRecs) {
     const dayNames  = ['日','月','火','水','木','金','土'];
     const dow       = dayNames[d.getDay()];
     const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-    const isHol     = holidays.some(h => h.date === date);
-    const dateColor = isWeekend || isHol ? '#e53935' : 'var(--primary)';
+    const isHol     = isHolidayOrSpecial(date);
+    const dateColor = isHol ? '#e53935' : 'var(--primary)';
     return `<div class="monthly-record-item" onclick="openDayDetail('${date}')">
       <div class="mr-date" style="color:${dateColor};">${date}（${dow}）</div>
       <div class="mr-row">
@@ -840,42 +830,97 @@ function clearAllData() {
 }
 
 // ============================================================
-// 祝日設定
+// 設定画面カレンダー
 // ============================================================
-function addHoliday() {
-  const date = document.getElementById('holiday-date').value;
-  const name = document.getElementById('holiday-name').value.trim() || '祝日';
-  if (!date) { showToast('日付を選択してください'); return; }
-  if (holidays.some(h => h.date === date)) { showToast('既に登録済みです'); return; }
-  holidays.push({ date, name });
-  saveHolidays();
-  renderHolidayList();
-  document.getElementById('holiday-date').value = '';
-  document.getElementById('holiday-name').value = '';
-  showToast('祝日を追加しました');
+function changeSettingsMonth(delta) {
+  settingsMonth.month += delta;
+  if (settingsMonth.month > 12) { settingsMonth.month = 1;  settingsMonth.year++; }
+  if (settingsMonth.month < 1)  { settingsMonth.month = 12; settingsMonth.year--; }
+  renderSettingsCalendar();
 }
 
-function removeHoliday(date) {
-  holidays = holidays.filter(h => h.date !== date);
-  saveHolidays();
-  renderHolidayList();
-  showToast('削除しました');
-}
+function renderSettingsCalendar() {
+  const container = document.getElementById('settings-calendar-grid');
+  const display   = document.getElementById('settings-calendar-month');
+  if (!container || !display) return;
 
-function renderHolidayList() {
-  const list = document.getElementById('holiday-list');
-  if (!list) return;
-  if (holidays.length === 0) {
-    list.innerHTML = '<div class="text-sub text-sm text-center" style="padding:8px;">登録なし</div>';
-    return;
+  display.textContent = `${settingsMonth.year}年${settingsMonth.month}月`;
+
+  const firstDay = new Date(settingsMonth.year, settingsMonth.month - 1, 1);
+  const lastDay  = new Date(settingsMonth.year, settingsMonth.month, 0);
+  const startDow = firstDay.getDay(); // 0:日, 1:月...
+  const totalDays = lastDay.getDate();
+
+  let html = '';
+  const dayNames = ['日','月','火','水','木','金','土'];
+  dayNames.forEach(n => html += `<div class="cal-day-head">${n}</div>`);
+
+  // 前月の埋め
+  const prevLastDay = new Date(settingsMonth.year, settingsMonth.month - 1, 0).getDate();
+  for (let i = startDow - 1; i >= 0; i--) {
+    html += `<div class="cal-day other-month">${prevLastDay - i}</div>`;
   }
-  const sorted = [...holidays].sort((a,b) => a.date.localeCompare(b.date));
-  list.innerHTML = sorted.map(h =>
-    `<div class="holiday-item">
-      <span>${h.date}（${h.name}）</span>
-      <button class="btn btn-danger" style="padding:4px 10px;font-size:.75rem;" onclick="removeHoliday('${h.date}')">削除</button>
-    </div>`
-  ).join('');
+
+  const todayStr = toDateStr(new Date());
+
+  // 当月
+  for (let d = 1; d <= totalDays; d++) {
+    const dateStr = `${settingsMonth.year}-${String(settingsMonth.month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dateObj = new Date(dateStr + 'T00:00:00');
+    const dow     = dateObj.getDay();
+    const isToday = dateStr === todayStr;
+    
+    const ds = dayStatuses.find(s => s.date === dateStr);
+    const holiday = holidays.find(h => h.date === dateStr);
+    
+    let cls = 'cal-day';
+    if (isToday) cls += ' today';
+    if (dow === 0) cls += ' sun';
+    if (dow === 6) cls += ' sat';
+    
+    // 状態クラス
+    if (holiday || (ds && ds.status === 'holiday')) cls += ' is-holiday';
+    else if (ds && ds.status === 'paid') cls += ' is-paid';
+    else if (ds && ds.status === 'hourly') cls += ' is-hourly';
+
+    html += `<div class="${cls}" onclick="toggleDayStatus('${dateStr}')">${d}</div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function toggleDayStatus(dateStr) {
+  // サイクル: Normal -> Holiday -> Paid -> Hourly -> Normal
+  const dsIdx = dayStatuses.findIndex(s => s.date === dateStr);
+  const currentStatus = dsIdx >= 0 ? dayStatuses[dsIdx].status : 'normal';
+  
+  // 祝日(holidays配列)に既にある場合は、まずそれを削除してdayStatusesで管理するようにする
+  const holIdx = holidays.findIndex(h => h.date === dateStr);
+  if (holIdx >= 0) {
+    holidays.splice(holIdx, 1);
+    saveHolidays();
+  }
+
+  let nextStatus = 'normal';
+  if (currentStatus === 'normal')  nextStatus = 'holiday';
+  else if (currentStatus === 'holiday') nextStatus = 'paid';
+  else if (currentStatus === 'paid')    nextStatus = 'hourly';
+  else if (currentStatus === 'hourly')  nextStatus = 'normal';
+
+  if (dsIdx >= 0) {
+    if (nextStatus === 'normal') dayStatuses.splice(dsIdx, 1);
+    else dayStatuses[dsIdx].status = nextStatus;
+  } else {
+    if (nextStatus !== 'normal') dayStatuses.push({ date: dateStr, status: nextStatus });
+  }
+
+  saveDayStatuses();
+  renderSettingsCalendar();
+  updateDayStatusBanner();
+  if (currentPage === 'monthly') renderMonthlyPage();
+  
+  const statusLabels = { normal: '通常', holiday: '祝日・休日', paid: '有給休暇', hourly: '時間休暇' };
+  showToast(`${dateStr} を ${statusLabels[nextStatus]} に設定しました`);
 }
 
 // ============================================================
@@ -887,9 +932,7 @@ function loadSettingsForm() {
   document.getElementById('cfg-dept').value  = currentUser.dept       || '';
   document.getElementById('cfg-start').value = currentUser.workStart  || '08:30';
   document.getElementById('cfg-end').value   = currentUser.workEnd    || '17:30';
-  const today = toDateStr(new Date());
-  const ds    = dayStatuses.find(s => s.date === today);
-  if (ds) document.getElementById('cfg-day-status').value = ds.status;
+
 }
 
 function saveUserConfig() {

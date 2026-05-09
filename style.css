@@ -307,6 +307,84 @@ html, body {
   padding: 12px;
 }
 
+/* 月切り替えコントロール（共通） */
+.month-ctrl {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.month-ctrl button {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 1.2rem;
+  color: var(--primary);
+}
+#month-display, #settings-calendar-month {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--text);
+}
+
+/* カレンダーグリッド */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.cal-day-head {
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 4px 0;
+  color: var(--text-sub);
+}
+.cal-day {
+  aspect-ratio: 1/1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  position: relative;
+  background: var(--white);
+  cursor: pointer;
+}
+.cal-day.other-month {
+  opacity: 0.3;
+}
+.cal-day.today {
+  border: 2px solid var(--primary);
+  font-weight: bold;
+}
+.cal-day.sun { color: #e53935; background: #ffebee; }
+.cal-day.sat { color: #1e88e5; background: #e3f2fd; }
+
+/* 休暇状態の色 */
+.cal-day.is-holiday { background: #ffcdd2 !important; border-color: #e53935; color: #b71c1c; }
+.cal-day.is-paid    { background: #c8e6c9 !important; border-color: #43a047; color: #1b5e20; }
+.cal-day.is-hourly  { background: #fff9c4 !important; border-color: #fbc02d; color: #f57f17; }
+
+/* 凡例 */
+.calendar-legend {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: var(--text-sub);
+  margin-top: 8px;
+}
+.legend-item { display: flex; align-items: center; gap: 4px; }
+.l-box { width: 12px; height: 12px; border-radius: 2px; border: 1px solid var(--border); }
+.l-holiday { background: #ffcdd2; border-color: #e53935; }
+.l-paid    { background: #c8e6c9; border-color: #43a047; }
+.l-hourly  { background: #fff9c4; border-color: #fbc02d; }
+
 /* ===== カード ===== */
 .card {
   background: var(--white);

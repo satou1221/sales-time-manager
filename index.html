@@ -216,36 +216,26 @@
     <button class="btn btn-primary" onclick="saveUserConfig()">設定を保存</button>
   </div>
 
-  <!-- 本日の状態設定 -->
+  <!-- カレンダー設定（祝日・休暇） -->
   <div class="card">
-    <div class="card-title">&#128197; 本日の状態設定</div>
-    <div class="form-group">
-      <label class="form-label">本日の状態</label>
-      <select id="cfg-day-status" class="form-input">
-        <option value="normal">通常勤務</option>
-        <option value="paid">有給休暇</option>
-        <option value="hourly">時間休暇</option>
-      </select>
+    <div class="card-title">&#128197; 祝日・休暇カレンダー</div>
+    <p class="text-sub text-xs" style="margin-bottom:12px;">日付をタップして祝日・有給・時間休を切り替えます。</p>
+    
+    <div id="settings-calendar-ctrl" class="month-ctrl">
+      <button onclick="changeSettingsMonth(-1)">&#9664;</button>
+      <div id="settings-calendar-month">2024年5月</div>
+      <button onclick="changeSettingsMonth(1)">&#9654;</button>
     </div>
-    <button class="btn btn-primary" onclick="saveDayStatus()">本日の状態を設定</button>
-  </div>
 
-  <!-- 祝日設定 -->
-  <div class="card">
-    <div class="card-title">&#127974; 祝日・特別休日設定</div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">日付を追加</label>
-        <input type="date" id="holiday-date" class="form-input">
-      </div>
-      <div class="form-group">
-        <label class="form-label">名称</label>
-        <input type="text" id="holiday-name" class="form-input" placeholder="例：元日">
-      </div>
+    <div id="settings-calendar-grid" class="calendar-grid">
+      <!-- JSで生成 -->
     </div>
-    <button class="btn btn-primary mt-8" onclick="addHoliday()">祝日を追加</button>
-    <div class="section-sep"></div>
-    <div class="holiday-list" id="holiday-list"></div>
+
+    <div class="calendar-legend">
+      <div class="legend-item"><span class="l-box l-holiday"></span>祝日</div>
+      <div class="legend-item"><span class="l-box l-paid"></span>有給</div>
+      <div class="legend-item"><span class="l-box l-hourly"></span>時間休</div>
+    </div>
   </div>
 
   <!-- データ管理 -->
