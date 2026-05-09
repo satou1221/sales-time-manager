@@ -940,11 +940,15 @@ function toggleDayStatus(dateStr) {
       dayStatuses.splice(dsIdx, 1);
     } else {
       dayStatuses[dsIdx].status = nextStatus;
-      dayStatuses[dsIdx].hours = hours; // 時間休の場合のみ設定
+      if (nextStatus === 'hourly') {
+        dayStatuses[dsIdx].hours = hours;
+      } else {
+        dayStatuses[dsIdx].hours = null; // 時間休以外はhoursを削除
+      }
     }
   } else {
     if (nextStatus !== 'normal') {
-      dayStatuses.push({ date: dateStr, status: nextStatus, hours: hours });
+      dayStatuses.push({ date: dateStr, status: nextStatus, hours: nextStatus === 'hourly' ? hours : null });
     }
   }
 
