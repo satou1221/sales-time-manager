@@ -723,7 +723,6 @@ function saveEdit() {
       rec.vacationMin = vacation;
       rec.breakMin  = 0; rec.partyMin = 0;
     }
-    }
   }
 
   records[idx] = rec;
