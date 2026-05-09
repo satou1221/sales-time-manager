@@ -193,30 +193,27 @@ function updateElapsed() {
 // ============================================================
 // 操作ボタン状態更新
 // ============================================================
+// 操作ボタン状態更新
+// ============================================================
 function updateActionButtons() {
   const btnEnd    = document.getElementById('btn-end');
   const btnBreak  = document.getElementById('btn-break');
-  const btnResume = document.getElementById('btn-resume');
+  if (!btnEnd || !btnBreak) return;
 
   if (!activeSession) {
     // 待機中：全て無効
     btnEnd.disabled    = true;
     btnBreak.disabled  = true;
-    btnResume.disabled = true;
   } else if (activeSession.type === BREAK_TYPE) {
-    // 休憩中：業務再開のみ有効
+    // 休憩中：業務区分ボタンでの再開を促すため、操作ボタンは無効
     btnEnd.disabled    = true;
     btnBreak.disabled  = true;
-    btnResume.disabled = false;
   } else {
     // 業務中：終了・休憩のみ有効
     btnEnd.disabled    = false;
     btnBreak.disabled  = false;
-    btnResume.disabled = true;
   }
 }
-
-// ============================================================
 // 業務区分タップ＝即業務開始（1タップ操作）
 // ============================================================
 function tapWorkType(btn) {
@@ -348,45 +345,8 @@ function startBreak() {
   showToast('休憩を開始しました');
 }
 
-// ============================================================
-// 業務再開（休憩終了）
-// ============================================================
-function endBreak() {
-  if (!activeSession || activeSession.type !== BREAK_TYPE) {
-    showToast('休憩中ではありません'); return;
-  }
-  endCurrentSession();
-
-  const lastWork = getLastWorkType();
-  if (lastWork && lastWork !== BREAK_TYPE) {
-    selectedWorkType = lastWork;
-    document.querySelectorAll('.wt-btn').forEach(b => {
-      b.classList.toggle('selected', b.dataset.type === selectedWorkType);
-    });
-    const now = new Date();
-    activeSession = {
-      id:        genId(),
-      workType:  selectedWorkType,
-      type:      selectedWorkType === PARTY_TYPE ? PARTY_TYPE : 'work',
-      startTime: now.toISOString(),
-      memo:      ''
-    };
-    saveActive();
-    showToast(`「${selectedWorkType}」を再開しました`);
-  } else {
-    showToast('休憩終了。業務区分を選択して開始してください');
-  }
-  updateHomeStatus();
-  updateElapsed();
-  if (currentPage === 'today') renderTodayPage();
-}
-
-function getLastWorkType() {
-  const today = toDateStr(new Date());
-  const todayRecs = records.filter(r => r.date === today && r.workType !== BREAK_TYPE);
-  if (todayRecs.length > 0) return todayRecs[todayRecs.length - 1].workType;
-  return null;
-}
+// 休憩終了（業務再開）は業務区分ボタンのタップで行うため、専用の関数は不要になりました。
+// tapWorkType関数内で休憩中のタップを検知し、自動的に休憩を終了して新しい業務を開始します。
 
 // ============================================================
 // 通常業務 / 時間外 分割計算

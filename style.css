@@ -232,11 +232,9 @@ html, body {
 #action-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 10px;
 }
-#btn-resume {
-  grid-column: 1 / -1;
-}
+
 .action-btn {
   border: none;
   border-radius: 8px;
