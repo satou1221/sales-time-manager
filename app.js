@@ -286,6 +286,7 @@ function endCurrentSession() {
 
   const isParty = activeSession.workType === PARTY_TYPE;
   const isBreak = activeSession.type === BREAK_TYPE;
+  const dateStr = toDateStr(start);
 
   let normalMin = 0, otMin = 0, breakMin = 0, partyMin = 0;
 
@@ -297,21 +298,26 @@ function endCurrentSession() {
     const { normal, ot } = splitNormalOT(start, now);
     normalMin = normal;
     otMin     = ot;
+    // 土日・祝日・有給の場合、0分記録でも時間外フラグを立てる
+    if (isHolidayOrSpecial(dateStr) && durMin === 0) {
+      otMin = 0; // 時間は0のままだが、normalMinも0のままにして時間外判定を可能にする
+    }
   }
 
   const rec = {
-    id:        activeSession.id,
-    name:      currentUser ? currentUser.name : '',
-    dept:      currentUser ? currentUser.dept  : '',
-    date:      toDateStr(start),
-    workType:  activeSession.workType,
-    type:      activeSession.type,
-    startTime: activeSession.startTime,
-    endTime:   now.toISOString(),
+    id:          activeSession.id,
+    name:        currentUser ? currentUser.name : '',
+    dept:        currentUser ? currentUser.dept  : '',
+    date:        dateStr,
+    workType:    activeSession.workType,
+    type:        activeSession.type,
+    startTime:   activeSession.startTime,
+    endTime:     now.toISOString(),
     normalMin, otMin, breakMin, partyMin,
-    memo:      activeSession.memo || '',
-    createdAt: now.toISOString(),
-    modified:  false
+    isSpecialDay: isHolidayOrSpecial(dateStr), // 土日・祝日・有給フラグ
+    memo:        activeSession.memo || '',
+    createdAt:   now.toISOString(),
+    modified:    false
   };
   records.push(rec);
   saveRecords();
@@ -500,13 +506,16 @@ function renderTodayPage() {
     const endStr   = r.endTime ? fmtTime(new Date(r.endTime)) : '進行中';
     let cls = '';
     let badges = '';
+    // 記録日が土日・祝日・有給かどうか判定（保存済みフラグ優先、なければ再計算）
+    const recDateIsSpecial = r.isSpecialDay !== undefined ? r.isSpecialDay : isHolidayOrSpecial(r.date);
     if (r.type === BREAK_TYPE) {
       cls = 'break-rec';
       badges += '<span class="rec-badge badge-break">休憩</span>';
     } else if (r.workType === PARTY_TYPE) {
       cls = 'party-rec';
       badges += '<span class="rec-badge badge-party">懇親会</span>';
-    } else if (r.otMin > 0 && r.normalMin === 0) {
+    } else if (recDateIsSpecial || (r.otMin > 0 && r.normalMin === 0)) {
+      // 土日・祝日・有給の場合、または全時間が時間外の場合
       cls = 'overtime';
       badges += '<span class="rec-badge badge-ot">時間外</span>';
     } else if (r.otMin > 0) {
@@ -648,9 +657,22 @@ function openDayDetail(date) {
       const startStr = fmtTime(new Date(r.startTime));
       const endStr   = r.endTime ? fmtTime(new Date(r.endTime)) : '進行中';
       const durMin   = r.endTime ? Math.floor((new Date(r.endTime) - new Date(r.startTime)) / 60000) : 0;
-      return `<div class="today-hist-item" onclick="openEditModal('${r.id}');closeDayDetailModal();">
+      const dIsSpecial = r.isSpecialDay !== undefined ? r.isSpecialDay : isHolidayOrSpecial(r.date);
+      let dBadges = '';
+      let dCls = '';
+      if (r.type === BREAK_TYPE) {
+        dCls = 'break-rec'; dBadges += '<span class="rec-badge badge-break">休憩</span>';
+      } else if (r.workType === PARTY_TYPE) {
+        dCls = 'party-rec'; dBadges += '<span class="rec-badge badge-party">懇親会</span>';
+      } else if (dIsSpecial || (r.otMin > 0 && r.normalMin === 0)) {
+        dCls = 'overtime'; dBadges += '<span class="rec-badge badge-ot">時間外</span>';
+      } else if (r.otMin > 0) {
+        dBadges += '<span class="rec-badge badge-ot">一部時間外</span>';
+      }
+      if (r.modified) { dCls += ' modified'; dBadges += '<span class="rec-badge badge-mod">修正済</span>'; }
+      return `<div class="today-hist-item ${dCls}" onclick="openEditModal('${r.id}');closeDayDetailModal();">
         <div class="hist-header">
-          <span class="hist-type">${r.workType}</span>
+          <span class="hist-type">${r.workType}${dBadges}</span>
           <span class="hist-time">${startStr}〜${endStr}</span>
         </div>
         <div class="hist-detail">
@@ -660,7 +682,6 @@ function openDayDetail(date) {
           ${r.breakMin > 0 ? ' 休憩:' + fmtMin(r.breakMin) : ''}
           ${r.partyMin > 0 ? ' 懇親会:' + fmtMin(r.partyMin) : ''}
           ${r.memo ? ' | ' + r.memo : ''}
-          ${r.modified ? '<span class="rec-badge badge-mod">修正済</span>' : ''}
         </div>
       </div>`;
     }).join('');
