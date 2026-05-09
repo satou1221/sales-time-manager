@@ -91,7 +91,8 @@ html, body {
   background: var(--home-bg);
   padding: 8px 10px 6px;
   gap: 0;
-  overflow: hidden; /* スクロールなし */
+  overflow-y: auto; /* スクロール可能 */
+  -webkit-overflow-scrolling: touch;
 }
 
 /* 有給・休日バナー */
@@ -111,10 +112,18 @@ html, body {
 }
 .day-banner-sub { font-size: .65rem; font-weight: 400; color: #ffb74d; }
 
-/* ① 現在の業務名 */
-#home-work-name-block {
+/* ① 業務名＋経過時間 横並び行 */
+#home-top-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
   flex-shrink: 0;
   padding: 6px 0 2px;
+  gap: 8px;
+}
+#home-work-name-block {
+  flex: 1;
+  min-width: 0;
 }
 .home-label {
   font-size: .68rem;
@@ -128,15 +137,19 @@ html, body {
   color: var(--white);
   line-height: 1.15;
   letter-spacing: -.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* ② 経過時間 */
+/* ② 経過時間（右側） */
 #home-elapsed-block {
   flex-shrink: 0;
-  padding: 4px 0 2px;
+  text-align: right;
+  padding-bottom: 2px;
 }
 #home-elapsed {
-  font-size: 1.35rem;
+  font-size: 1.6rem;
   font-weight: 700;
   color: #b3e5fc;
   letter-spacing: .04em;
