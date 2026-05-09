@@ -244,13 +244,22 @@ function tapWorkType(btn) {
 }
 
 function _startNewWork(workType, btn) {
+  let memo = "";
+  if (workType === PARTY_TYPE) {
+    const inputMemo = prompt("懇親会対応のメモを入力してください（誰と何のために）:", "");
+    if (inputMemo === null || inputMemo.trim() === "") {
+      showToast("懇親会対応の場合、メモは必須です。");
+      return;
+    }
+    memo = inputMemo.trim();
+  }
   const now = new Date();
   activeSession = {
     id:        genId(),
     workType:  workType,
     type:      workType === PARTY_TYPE ? PARTY_TYPE : 'work',
     startTime: now.toISOString(),
-    memo:      ''
+    memo:      memo
   };
   saveActive();
   selectedWorkType = workType;
@@ -286,34 +295,34 @@ function endCurrentSession() {
   const isBreak = activeSession.type === BREAK_TYPE;
   const dateStr = toDateStr(start);
 
-  let normalMin = 0, otMin = 0, breakMin = 0, partyMin = 0;
+  let normalMin = 0, otMin = 0, breakMin = 0, partyMin = 0, vacationMin = 0;
 
   if (isBreak) {
     breakMin = durMin;
   } else if (isParty) {
     partyMin = durMin;
   } else {
-    const { normal, ot } = splitNormalOT(start, now);
+    const { normal, ot, vacation } = splitWorkTime(start, now, dateStr);
     normalMin = normal;
     otMin     = ot;
-    // 土日・祝日・有給の場合、0分記録でも時間外フラグを立てる
-    if (isHolidayOrSpecial(dateStr) && durMin === 0) {
-      otMin = 0; // 時間は0のままだが、normalMinも0のままにして時間外判定を可能にする
-    }
+    vacationMin = vacation;
   }
 
   const rec = {
     id:          activeSession.id,
-    name:        currentUser ? currentUser.name : '',
-    dept:        currentUser ? currentUser.dept  : '',
-    date:        dateStr,
     workType:    activeSession.workType,
     type:        activeSession.type,
     startTime:   activeSession.startTime,
     endTime:     now.toISOString(),
-    normalMin, otMin, breakMin, partyMin,
-    isSpecialDay: isHolidayOrSpecial(dateStr), // 土日・祝日・有給フラグ
-    memo:        activeSession.memo || '',
+    memo:        activeSession.memo,
+    date:        dateStr,
+    normalMin:   normalMin,
+    otMin:       otMin,
+    breakMin:    breakMin,
+    partyMin:    partyMin,
+    vacationMin: vacationMin,
+    name:        currentUser ? currentUser.name : '',
+    dept:        currentUser ? currentUser.dept  : '',
     createdAt:   now.toISOString(),
     modified:    false
   };
@@ -337,7 +346,7 @@ function startBreak() {
     workType:  BREAK_TYPE,
     type:      BREAK_TYPE,
     startTime: now.toISOString(),
-    memo:      ''
+    memo:      memo
   };
   saveActive();
   updateHomeStatus();
@@ -438,13 +447,15 @@ function renderTodayPage() {
   // 集計
   const sumNormal = todayRecs.reduce((s,r) => s + (r.normalMin||0), 0);
   const sumOT     = todayRecs.reduce((s,r) => s + (r.otMin||0), 0);
+  const sumVacation = todayRecs.reduce((s,r) => s + (r.vacationMin||0), 0);
   const sumBreak  = todayRecs.reduce((s,r) => s + (r.breakMin||0), 0);
   const sumParty  = todayRecs.reduce((s,r) => s + (r.partyMin||0), 0);
 
   document.getElementById('today-sum-normal').textContent = fmtMin(sumNormal);
   document.getElementById('today-sum-ot').textContent     = fmtMin(sumOT);
-  document.getElementById('today-sum-break').textContent  = fmtMin(sumBreak);
-  document.getElementById('today-sum-party').textContent  = fmtMin(sumParty);
+  document.getElementById("today-sum-break").textContent  = fmtMin(sumBreak);
+  document.getElementById("today-sum-party").textContent  = fmtMin(sumParty);
+  document.getElementById("today-sum-vacation").textContent = fmtMin(sumVacation);
 
   // 履歴リスト
   const list = document.getElementById('today-history-list');
@@ -506,15 +517,17 @@ function renderMonthlyPage() {
 
   const monthRecs = records.filter(r => r.date && r.date.startsWith(ym));
 
-  const totalNormal = monthRecs.reduce((s,r) => s + (r.normalMin||0), 0);
-  const totalOT     = monthRecs.reduce((s,r) => s + (r.otMin||0), 0);
-  const totalBreak  = monthRecs.reduce((s,r) => s + (r.breakMin||0), 0);
-  const totalParty  = monthRecs.reduce((s,r) => s + (r.partyMin||0), 0);
+    const totalNormal = monthRecs.reduce((s,r) => s + (r.normalMin||0), 0);
+    const totalOT     = monthRecs.reduce((s,r) => s + (r.otMin||0), 0);
+    const totalVacation = monthRecs.reduce((s,r) => s + (r.vacationMin||0), 0);
+    const totalBreak  = monthRecs.reduce((s,r) => s + (r.breakMin||0), 0);
+    const totalParty  = monthRecs.reduce((s,r) => s + (r.partyMin||0), 0);
   const totalAll    = totalNormal + totalOT;
 
   document.getElementById('sum-total').textContent  = fmtMin(totalAll);
   document.getElementById('sum-normal').textContent = fmtMin(totalNormal);
   document.getElementById('sum-ot').textContent     = fmtMin(totalOT);
+  document.getElementById('sum-vacation').textContent = fmtMin(totalVacation);
   document.getElementById('sum-break').textContent  = fmtMin(totalBreak);
   document.getElementById('sum-party').textContent  = fmtMin(totalParty);
 
@@ -699,15 +712,17 @@ function saveEdit() {
   if (endDt) {
     if (rec.type === BREAK_TYPE) {
       rec.breakMin  = Math.floor((endDt - startDt) / 60000);
-      rec.normalMin = 0; rec.otMin = 0; rec.partyMin = 0;
+      rec.normalMin = 0; rec.otMin = 0; rec.partyMin = 0; rec.vacationMin = 0;
     } else if (rec.workType === PARTY_TYPE) {
       rec.partyMin  = Math.floor((endDt - startDt) / 60000);
-      rec.normalMin = 0; rec.otMin = 0; rec.breakMin = 0;
+      rec.normalMin = 0; rec.otMin = 0; rec.breakMin = 0; rec.vacationMin = 0;
     } else {
-      const { normal, ot } = splitNormalOT(startDt, endDt);
+      const { normal, ot, vacation } = splitWorkTime(startDt, endDt, dateStr);
       rec.normalMin = normal;
       rec.otMin     = ot;
+      rec.vacationMin = vacation;
       rec.breakMin  = 0; rec.partyMin = 0;
+    }
     }
   }
 
@@ -741,7 +756,7 @@ function exportCSV() {
 
   const BOM     = '\uFEFF';
   const headers = ['氏名','部門','日付','業務区分','開始日時','終了日時',
-                   '通常業務時間(分)','時間外時間(分)','休憩時間(分)','懇親会対応時間(分)',
+                   '通常業務時間(分)','時間外時間(分)','休暇中業務時間(分)','休憩時間(分)','懇親会対応時間(分)','状態',
                    'メモ','記録作成日時','修正フラグ'];
   const rows = monthRecs.map(r => [
     csvEsc(r.name || ''),
@@ -752,8 +767,16 @@ function exportCSV() {
     csvEsc(r.endTime   ? fmtDatetime(new Date(r.endTime))   : ''),
     r.normalMin || 0,
     r.otMin     || 0,
+    r.vacationMin || 0,
     r.breakMin  || 0,
     r.partyMin  || 0,
+    (() => {
+      if (r.type === BREAK_TYPE) return '休憩';
+      if (r.workType === PARTY_TYPE) return '懇親会';
+      if (r.vacationMin > 0) return '休暇中業務';
+      if (r.otMin > 0) return '時間外業務';
+      return '通常業務';
+    })(),
     csvEsc(r.memo || ''),
     csvEsc(r.createdAt ? fmtDatetime(new Date(r.createdAt)) : ''),
     r.modified ? '修正済' : ''
@@ -923,35 +946,29 @@ function toggleDayStatus(dateStr) {
   else if (currentStatus === 'hourly')  nextStatus = 'normal';
 
   let hours = null;
+  const hourlyDateInput = document.getElementById("hourly-date");
+  const hourlyStartTimeInput = document.getElementById("hourly-start-time");
+  const hourlyEndTimeInput = document.getElementById("hourly-end-time");
+
+  // カレンダーの日付をクリックした際に、下部の時間休入力フォームに値をセット
+  if (hourlyDateInput && hourlyStartTimeInput && hourlyEndTimeInput) {
+    hourlyDateInput.value = dateStr;
+    if (currentStatus === 'hourly' && dsIdx >= 0) {
+      hourlyStartTimeInput.value = dayStatuses[dsIdx].startTime || '';
+      hourlyEndTimeInput.value = dayStatuses[dsIdx].endTime || '';
+    } else {
+      hourlyStartTimeInput.value = '';
+      hourlyEndTimeInput.value = '';
+    }
+  }
   if (nextStatus === 'hourly') {
-    const existingStartTime = dsIdx >= 0 && dayStatuses[dsIdx].startTime ? dayStatuses[dsIdx].startTime : '09:00';
-    const existingEndTime = dsIdx >= 0 && dayStatuses[dsIdx].endTime ? dayStatuses[dsIdx].endTime : '13:00';
+    // 時間休の入力は下部のフォームで行うため、ここではプロンプトを出さない
+    // ただし、statusをhourlyに切り替える場合は、一旦デフォルト値で設定しておく
+    // フォームからの保存時に上書きされる
+    const startTimeInput = dsIdx >= 0 && dayStatuses[dsIdx].startTime ? dayStatuses[dsIdx].startTime : '09:00';
+    const endTimeInput = dsIdx >= 0 && dayStatuses[dsIdx].endTime ? dayStatuses[dsIdx].endTime : '13:00';
+    hours = calculateHours(startTimeInput, endTimeInput); // 時間計算は必要なので残す
 
-    const startTimeInput = prompt(`時間休の開始時間を入力してください (例: 09:00):`, existingStartTime);
-    if (startTimeInput === null) { // キャンセルされた場合
-      renderSettingsCalendar();
-      return;
-    }
-    const endTimeInput = prompt(`時間休の終了時間を入力してください (例: 13:00):`, existingEndTime);
-    if (endTimeInput === null) { // キャンセルされた場合
-      renderSettingsCalendar();
-      return;
-    }
-
-    // 時間形式のバリデーション（簡易的）
-    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!timeRegex.test(startTimeInput) || !timeRegex.test(endTimeInput)) {
-      showToast('無効な時間形式です。HH:MM形式で入力してください。時間休の設定をキャンセルしました。');
-      renderSettingsCalendar();
-      return;
-    }
-
-    hours = calculateHours(startTimeInput, endTimeInput);
-    if (hours <= 0) {
-      showToast('開始時間は終了時間より前である必要があります。時間休の設定をキャンセルしました。');
-      renderSettingsCalendar();
-      return;
-    }
 
   }
 
@@ -961,8 +978,10 @@ function toggleDayStatus(dateStr) {
     } else {
       dayStatuses[dsIdx].status = nextStatus;
       if (nextStatus === 'hourly') {
-        dayStatuses[dsIdx].startTime = startTimeInput;
-        dayStatuses[dsIdx].endTime = endTimeInput;
+      // 時間休の具体的な時間は下部のフォームで管理するため、ここではステータスのみ更新
+      // フォームからの保存時にstartTime/endTimeが設定される
+      dayStatuses[dsIdx].startTime = null;
+      dayStatuses[dsIdx].endTime = null;
       } else {
         dayStatuses[dsIdx].startTime = null; // 時間休以外はstartTimeを削除
         dayStatuses[dsIdx].endTime = null;   // 時間休以外はendTimeを削除
@@ -970,7 +989,9 @@ function toggleDayStatus(dateStr) {
     }
   } else {
     if (nextStatus !== 'normal') {
-      dayStatuses.push({ date: dateStr, status: nextStatus, startTime: nextStatus === 'hourly' ? startTimeInput : null, endTime: nextStatus === 'hourly' ? endTimeInput : null });
+      // 時間休の具体的な時間は下部のフォームで管理するため、ここではステータスのみ更新
+      // フォームからの保存時にstartTime/endTimeが設定される
+      dayStatuses.push({ date: dateStr, status: nextStatus, startTime: null, endTime: null });
     }
   }
 
@@ -1065,4 +1086,179 @@ function calculateHours(startTime, endTime) {
 
   const diffMs = endDate - startDate;
   return diffMs / (1000 * 60 * 60);
+}
+
+function saveHourlyLeave() {
+  const dateInput = document.getElementById('hourly-date').value;
+  const startTimeInput = document.getElementById('hourly-start-time').value;
+  const endTimeInput = document.getElementById('hourly-end-time').value;
+
+  if (!dateInput || !startTimeInput || !endTimeInput) {
+    showToast('日付、開始時間、終了時間をすべて入力してください。');
+    return;
+  }
+
+  const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+  if (!timeRegex.test(startTimeInput) || !timeRegex.test(endTimeInput)) {
+    showToast('無効な時間形式です。HH:MM形式で入力してください。');
+    return;
+  }
+
+  const hours = calculateHours(startTimeInput, endTimeInput);
+  if (hours <= 0) {
+    showToast('開始時間は終了時間より前である必要があります。');
+    return;
+  }
+
+  const dateStr = dateInput;
+  const dsIdx = dayStatuses.findIndex(s => s.date === dateStr);
+
+  if (dsIdx >= 0) {
+    dayStatuses[dsIdx].status = 'hourly';
+    dayStatuses[dsIdx].startTime = startTimeInput;
+    dayStatuses[dsIdx].endTime = endTimeInput;
+  } else {
+    dayStatuses.push({ date: dateStr, status: 'hourly', startTime: startTimeInput, endTime: endTimeInput });
+  }
+
+  saveDayStatuses();
+  renderSettingsCalendar();
+  updateDayStatusBanner();
+  if (currentPage === 'monthly') renderMonthlyPage();
+  showToast(`${dateStr} の時間休を ${startTimeInput}-${endTimeInput} で設定しました`);
+}
+
+function clearHourlyLeave() {
+  const dateInput = document.getElementById('hourly-date').value;
+  if (!dateInput) {
+    showToast('クリアする日付を選択してください。');
+    return;
+  }
+
+  const dateStr = dateInput;
+  const dsIdx = dayStatuses.findIndex(s => s.date === dateStr);
+
+  if (dsIdx >= 0 && dayStatuses[dsIdx].status === 'hourly') {
+    dayStatuses.splice(dsIdx, 1);
+    saveDayStatuses();
+    renderSettingsCalendar();
+    updateDayStatusBanner();
+    if (currentPage === 'monthly') renderMonthlyPage();
+    showToast(`${dateStr} の時間休をクリアしました`);
+  } else {
+    showToast(`${dateStr} は時間休として設定されていません。`);
+  }
+  document.getElementById('hourly-date').value = '';
+  document.getElementById('hourly-start-time').value = '';
+  document.getElementById('hourly-end-time').value = '';
+}
+
+// ============================================================
+// 新規記録追加モーダル
+// ============================================================
+function openNewRecordModal() {
+  const now = new Date();
+  document.getElementById("new-record-start").value = toDatetimeLocal(now);
+  document.getElementById("new-record-end").value = toDatetimeLocal(now);
+  document.getElementById("new-record-memo").value = "";
+  document.getElementById("new-record-type").value = WORK_TYPES[0]; // デフォルトで最初の業務区分を選択
+  document.getElementById("new-record-modal").classList.add("open");
+}
+
+function closeNewRecordModal() {
+  document.getElementById("new-record-modal").classList.remove("open");
+}
+
+function saveNewRecord() {
+  const type = document.getElementById("new-record-type").value;
+  const startV = document.getElementById("new-record-start").value;
+  const endV = document.getElementById("new-record-end").value;
+  const memo = document.getElementById("new-record-memo").value.trim();
+
+  if (!startV) { showToast("開始日時を入力してください"); return; }
+  if (!endV) { showToast("終了日時を入力してください"); return; }
+
+  const startDt = new Date(startV);
+  const endDt = new Date(endV);
+
+  if (endDt <= startDt) { showToast("終了時刻は開始時刻より後にしてください"); return; }
+
+  // 懇親会対応の場合、メモを必須にする
+  if (type === PARTY_TYPE && !memo) {
+    showToast("懇親会対応の場合、メモは必須です（誰と何のために）。");
+    return;
+  }
+
+  const dateStr = toDateStr(startDt);
+
+  const rec = {
+    id: genId(),
+    workType: type,
+    type: type === BREAK_TYPE ? BREAK_TYPE : (type === PARTY_TYPE ? PARTY_TYPE : "work"),
+    startTime: startDt.toISOString(),
+    endTime: endDt.toISOString(),
+    memo: memo,
+    modified: true, // 新規追加も修正扱い
+    date: dateStr // 日付を追加
+  };
+
+  // 時間計算
+  const durMin = Math.floor((endDt - startDt) / 60000);
+  if (rec.type === BREAK_TYPE) {
+    rec.breakMin = durMin;
+    rec.normalMin = 0; rec.otMin = 0; rec.partyMin = 0; rec.vacationMin = 0;
+  } else if (rec.workType === PARTY_TYPE) {
+    rec.partyMin = durMin;
+    rec.normalMin = 0; rec.otMin = 0; rec.breakMin = 0; rec.vacationMin = 0;
+  } else {
+    const { normal, ot, vacation } = splitWorkTime(startDt, endDt, dateStr);
+    rec.normalMin = normal;
+    rec.otMin = ot;
+    rec.vacationMin = vacation;
+    rec.breakMin = 0; rec.partyMin = 0; rec.vacationMin = 0;
+  }
+
+  records.push(rec);
+  saveRecords();
+  closeNewRecordModal();
+  renderTodayPage();
+  if (currentPage === 'monthly') renderMonthlyPage();
+  showToast("新しい記録を追加しました");
+}
+
+function splitWorkTime(startDt, endDt, dateStr) {
+  let normalMin = 0;
+  let otMin = 0;
+  let vacationMin = 0;
+
+  // 休暇中の業務判定
+  const ds = dayStatuses.find(s => s.date === dateStr);
+  const isVacationDay = ds && (ds.status === 'holiday' || ds.status === 'paid' || ds.status === 'hourly');
+
+  if (isVacationDay) {
+    vacationMin = Math.floor((endDt - startDt) / 60000);
+  } else {
+    // 通常業務と時間外業務の判定
+    const [workStartH, workStartM] = currentUser.workStart.split(':').map(Number);
+    const [workEndH, workEndM] = currentUser.workEnd.split(':').map(Number);
+
+    const workStart = new Date(startDt);
+    workStart.setHours(workStartH, workStartM, 0, 0);
+    const workEnd = new Date(startDt);
+    workEnd.setHours(workEndH, workEndM, 0, 0);
+
+    let current = new Date(startDt);
+    while (current < endDt) {
+      const nextMinute = new Date(current.getTime() + 60 * 1000);
+      if (nextMinute > endDt) nextMinute = endDt; // 終了時間を超えないように調整
+
+      if (current >= workStart && current < workEnd) {
+        normalMin++;
+      } else {
+        otMin++;
+      }
+      current = nextMinute;
+    }
+  }
+  return { normal: normalMin, ot: otMin, vacation: vacationMin };
 }
