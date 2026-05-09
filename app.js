@@ -574,7 +574,10 @@ function renderMonthlyRecords(monthRecs) {
     
     // 時間休の時間を計算
     const ds = dayStatuses.find(s => s.date === date);
-    const hourlyHours = (ds && ds.status === 'hourly' && ds.hours) ? ds.hours : 0;
+    let hourlyHours = 0;
+    if (ds && ds.status === 'hourly' && ds.startTime && ds.endTime) {
+      hourlyHours = calculateHours(ds.startTime, ds.endTime);
+    }
     const hourlyMin = Math.round(hourlyHours * 60);
     
     const d         = new Date(date + 'T00:00:00');
@@ -892,7 +895,7 @@ function renderSettingsCalendar() {
     else if (ds && ds.status === 'paid') cls += ' is-paid';
     else if (ds && ds.status === 'hourly') {
       cls += ' is-hourly';
-      if (ds.hours) dayContent += `<br><small>${ds.hours}h</small>`;
+      if (ds.startTime && ds.endTime) dayContent += `<br><small>${ds.startTime}-${ds.endTime}</small>`;
     }
 
     html += `<div class="${cls}" onclick="toggleDayStatus('${dateStr}')">${dayContent}</div>`;
@@ -921,18 +924,35 @@ function toggleDayStatus(dateStr) {
 
   let hours = null;
   if (nextStatus === 'hourly') {
-    const existingHours = dsIdx >= 0 && dayStatuses[dsIdx].hours ? dayStatuses[dsIdx].hours : '4';
-    const input = prompt(`時間休の時間数を入力してください (例: 4, 0.5):`, existingHours);
-    if (input === null) { // キャンセルされた場合
+    const existingStartTime = dsIdx >= 0 && dayStatuses[dsIdx].startTime ? dayStatuses[dsIdx].startTime : '09:00';
+    const existingEndTime = dsIdx >= 0 && dayStatuses[dsIdx].endTime ? dayStatuses[dsIdx].endTime : '13:00';
+
+    const startTimeInput = prompt(`時間休の開始時間を入力してください (例: 09:00):`, existingStartTime);
+    if (startTimeInput === null) { // キャンセルされた場合
       renderSettingsCalendar();
       return;
     }
-    hours = parseFloat(input);
-    if (isNaN(hours) || hours <= 0) {
-      showToast('無効な時間数です。時間休の設定をキャンセルしました。');
+    const endTimeInput = prompt(`時間休の終了時間を入力してください (例: 13:00):`, existingEndTime);
+    if (endTimeInput === null) { // キャンセルされた場合
       renderSettingsCalendar();
       return;
     }
+
+    // 時間形式のバリデーション（簡易的）
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(startTimeInput) || !timeRegex.test(endTimeInput)) {
+      showToast('無効な時間形式です。HH:MM形式で入力してください。時間休の設定をキャンセルしました。');
+      renderSettingsCalendar();
+      return;
+    }
+
+    hours = calculateHours(startTimeInput, endTimeInput);
+    if (hours <= 0) {
+      showToast('開始時間は終了時間より前である必要があります。時間休の設定をキャンセルしました。');
+      renderSettingsCalendar();
+      return;
+    }
+
   }
 
   if (dsIdx >= 0) {
@@ -941,14 +961,16 @@ function toggleDayStatus(dateStr) {
     } else {
       dayStatuses[dsIdx].status = nextStatus;
       if (nextStatus === 'hourly') {
-        dayStatuses[dsIdx].hours = hours;
+        dayStatuses[dsIdx].startTime = startTimeInput;
+        dayStatuses[dsIdx].endTime = endTimeInput;
       } else {
-        dayStatuses[dsIdx].hours = null; // 時間休以外はhoursを削除
+        dayStatuses[dsIdx].startTime = null; // 時間休以外はstartTimeを削除
+        dayStatuses[dsIdx].endTime = null;   // 時間休以外はendTimeを削除
       }
     }
   } else {
     if (nextStatus !== 'normal') {
-      dayStatuses.push({ date: dateStr, status: nextStatus, hours: nextStatus === 'hourly' ? hours : null });
+      dayStatuses.push({ date: dateStr, status: nextStatus, startTime: nextStatus === 'hourly' ? startTimeInput : null, endTime: nextStatus === 'hourly' ? endTimeInput : null });
     }
   }
 
@@ -1025,4 +1047,22 @@ function showToast(msg) {
   el.classList.add('show');
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function calculateHours(startTime, endTime) {
+  const [startH, startM] = startTime.split(":").map(Number);
+  const [endH, endM] = endTime.split(":").map(Number);
+
+  const startDate = new Date();
+  startDate.setHours(startH, startM, 0, 0);
+  const endDate = new Date();
+  endDate.setHours(endH, endM, 0, 0);
+
+  if (endDate < startDate) {
+    // 終了時間が開始時間より前の場合は翌日と判断
+    endDate.setDate(endDate.getDate() + 1);
+  }
+
+  const diffMs = endDate - startDate;
+  return diffMs / (1000 * 60 * 60);
 }
