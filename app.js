@@ -758,17 +758,42 @@ function exportCSV() {
     r.modified ? '修正済' : ''
   ]);
 
-  const csv  = BOM + [headers, ...rows].map(row => row.join(',')).join('\r\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `業務時間_${currentUser ? currentUser.name : 'data'}_${ym}.csv`;
+  const csv      = BOM + [headers, ...rows].map(row => row.join(',')).join('\r\n');
+  const fileName = `業務時間_${currentUser ? currentUser.name : 'data'}_${ym}.csv`;
+  const blob     = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+
+  // Web Share API が利用可能な場合（スマホブラウザなど）
+  if (navigator.canShare && navigator.share) {
+    const file = new File([blob], fileName, { type: 'text/csv' });
+    navigator.share({
+      files: [file],
+      title: '業務時間記録',
+      text: `${ym}分の業務時間記録CSVです。`
+    }).then(() => {
+      showToast('共有メニューを開きました');
+    }).catch((err) => {
+      console.error('Share failed:', err);
+      // ユーザーキャンセル以外の場合はフォールバック
+      if (err.name !== 'AbortError') {
+        fallbackDownload(blob, fileName);
+      }
+    });
+  } else {
+    // PCブラウザなどのフォールバック
+    fallbackDownload(blob, fileName);
+  }
+}
+
+function fallbackDownload(blob, fileName) {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href    = url;
+  a.download = fileName;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showToast('CSVを出力しました。LINE WORKSで送信してください');
+  showToast('CSVをダウンロードしました。LINE WORKSで送信してください');
 }
 
 function csvEsc(v) {
