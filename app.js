@@ -571,6 +571,12 @@ function renderMonthlyRecords(monthRecs) {
     const otMin     = recs.reduce((s,r) => s + (r.otMin||0), 0);
     const breakMin  = recs.reduce((s,r) => s + (r.breakMin||0), 0);
     const partyMin  = recs.reduce((s,r) => s + (r.partyMin||0), 0);
+    
+    // 時間休の時間を計算
+    const ds = dayStatuses.find(s => s.date === date);
+    const hourlyHours = (ds && ds.status === 'hourly' && ds.hours) ? ds.hours : 0;
+    const hourlyMin = Math.round(hourlyHours * 60);
+    
     const d         = new Date(date + 'T00:00:00');
     const dayNames  = ['日','月','火','水','木','金','土'];
     const dow       = dayNames[d.getDay()];
@@ -584,6 +590,7 @@ function renderMonthlyRecords(monthRecs) {
         <span>時間外: ${fmtMin(otMin)}</span>
         <span>休憩: ${fmtMin(breakMin)}</span>
         ${partyMin > 0 ? `<span>懇親会: ${fmtMin(partyMin)}</span>` : ''}
+        ${hourlyMin > 0 ? `<span>時間休: ${fmtMin(hourlyMin)}</span>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -880,11 +887,15 @@ function renderSettingsCalendar() {
     if (dow === 6) cls += ' sat';
     
     // 状態クラス
+    let dayContent = d;
     if (holiday || (ds && ds.status === 'holiday')) cls += ' is-holiday';
     else if (ds && ds.status === 'paid') cls += ' is-paid';
-    else if (ds && ds.status === 'hourly') cls += ' is-hourly';
+    else if (ds && ds.status === 'hourly') {
+      cls += ' is-hourly';
+      if (ds.hours) dayContent += `<br><small>${ds.hours}h</small>`;
+    }
 
-    html += `<div class="${cls}" onclick="toggleDayStatus('${dateStr}')">${d}</div>`;
+    html += `<div class="${cls}" onclick="toggleDayStatus('${dateStr}')">${dayContent}</div>`;
   }
 
   container.innerHTML = html;
@@ -908,11 +919,33 @@ function toggleDayStatus(dateStr) {
   else if (currentStatus === 'paid')    nextStatus = 'hourly';
   else if (currentStatus === 'hourly')  nextStatus = 'normal';
 
+  let hours = null;
+  if (nextStatus === 'hourly') {
+    const existingHours = dsIdx >= 0 && dayStatuses[dsIdx].hours ? dayStatuses[dsIdx].hours : '4';
+    const input = prompt(`時間休の時間数を入力してください (例: 4, 0.5):`, existingHours);
+    if (input === null) { // キャンセルされた場合
+      renderSettingsCalendar();
+      return;
+    }
+    hours = parseFloat(input);
+    if (isNaN(hours) || hours <= 0) {
+      showToast('無効な時間数です。時間休の設定をキャンセルしました。');
+      renderSettingsCalendar();
+      return;
+    }
+  }
+
   if (dsIdx >= 0) {
-    if (nextStatus === 'normal') dayStatuses.splice(dsIdx, 1);
-    else dayStatuses[dsIdx].status = nextStatus;
+    if (nextStatus === 'normal') {
+      dayStatuses.splice(dsIdx, 1);
+    } else {
+      dayStatuses[dsIdx].status = nextStatus;
+      dayStatuses[dsIdx].hours = hours; // 時間休の場合のみ設定
+    }
   } else {
-    if (nextStatus !== 'normal') dayStatuses.push({ date: dateStr, status: nextStatus });
+    if (nextStatus !== 'normal') {
+      dayStatuses.push({ date: dateStr, status: nextStatus, hours: hours });
+    }
   }
 
   saveDayStatuses();
