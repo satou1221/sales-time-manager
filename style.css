@@ -74,6 +74,8 @@ html, body {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .nav-btn .nav-icon { font-size: 1.25rem; }
 .nav-btn.active { color: #7ecbe8; font-weight: 700; }
@@ -208,6 +210,7 @@ html, body {
   font-weight: 600;
   cursor: pointer;
   transition: all .15s;
+  background: rgba(44,95,122,.6);
   color: #d8edf5;
   display: flex;
   align-items: center;
@@ -216,6 +219,8 @@ html, body {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .wt-btn:active { transform: scale(.96); }
 .wt-btn.selected {
@@ -257,6 +262,8 @@ html, body {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .action-btn:active { transform: scale(.96); }
 .action-btn:disabled { opacity: .3; cursor: not-allowed; transform: none; }
@@ -508,6 +515,8 @@ html, body {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .btn:active { transform: scale(.97); }
 .btn-primary { background: var(--primary); color: var(--white); width: 100%; }
