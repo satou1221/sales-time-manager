@@ -1,5 +1,5 @@
 /* ============================================================
-   営業部 業務時間管理 app.js  v1.2
+   営業部 業務時間管理 app.js  v1.3
    - localStorage ベース（サーバー不要・費用ゼロ）
    - PWA対応（オフライン動作）
    ============================================================ */
@@ -125,7 +125,7 @@ function showPage(page) {
 
   if (page === 'today')    renderTodayPage();
   if (page === 'monthly')  renderMonthlyPage();
-  if (page === 'settings') { loadSettingsForm(); renderHolidayList(); }
+  if (page === 'settings') { loadSettingsForm(); renderSettingsCalendar(); }
 }
 
 // ============================================================
@@ -346,7 +346,7 @@ function startBreak() {
     workType:  BREAK_TYPE,
     type:      BREAK_TYPE,
     startTime: now.toISOString(),
-    memo:      memo
+    memo:      ''
   };
   saveActive();
   updateHomeStatus();
@@ -703,12 +703,14 @@ function saveEdit() {
   const endDt   = endV ? new Date(endV) : null;
   if (endDt && endDt <= startDt) { showToast('終了時刻は開始時刻より後にしてください'); return; }
 
+  const dateStr = toDateStr(startDt);
   const rec     = records[idx];
   rec.workType  = type;
   rec.type      = type === BREAK_TYPE ? BREAK_TYPE : (type === PARTY_TYPE ? PARTY_TYPE : 'work');
   rec.startTime = startDt.toISOString();
   rec.endTime   = endDt ? endDt.toISOString() : rec.endTime;
   rec.memo      = memo;
+  rec.date      = dateStr;
   rec.modified  = true;
 
   if (endDt) {
@@ -1216,7 +1218,7 @@ function saveNewRecord() {
     rec.normalMin = normal;
     rec.otMin = ot;
     rec.vacationMin = vacation;
-    rec.breakMin = 0; rec.partyMin = 0; rec.vacationMin = 0;
+    rec.breakMin = 0; rec.partyMin = 0;
   }
 
   records.push(rec);
