@@ -1250,8 +1250,8 @@ function splitWorkTime(startDt, endDt, dateStr) {
 
     let current = new Date(startDt);
     while (current < endDt) {
-      const nextMinute = new Date(current.getTime() + 60 * 1000);
-      if (nextMinute > endDt) nextMinute = endDt; // 終了時間を超えないように調整
+      let nextMinute = new Date(current.getTime() + 60 * 1000);
+      if (nextMinute > endDt) nextMinute = new Date(endDt); // 終了時間を超えないように調整
 
       if (current >= workStart && current < workEnd) {
         normalMin++;
