@@ -1,5 +1,5 @@
 /* ============================================================
-   営業部 業務時間管理 app.js  v1.3
+   営業部 業務時間管理 app.js  v1.4
    - localStorage ベース（サーバー不要・費用ゼロ）
    - PWA対応（オフライン動作）
    ============================================================ */
@@ -582,10 +582,11 @@ function renderMonthlyRecords(monthRecs) {
   }
   container.innerHTML = dates.map(date => {
     const recs      = byDate[date];
-    const normalMin = recs.reduce((s,r) => s + (r.normalMin||0), 0);
-    const otMin     = recs.reduce((s,r) => s + (r.otMin||0), 0);
-    const breakMin  = recs.reduce((s,r) => s + (r.breakMin||0), 0);
-    const partyMin  = recs.reduce((s,r) => s + (r.partyMin||0), 0);
+    const normalMin  = recs.reduce((s,r) => s + (r.normalMin||0), 0);
+    const otMin      = recs.reduce((s,r) => s + (r.otMin||0), 0);
+    const breakMin   = recs.reduce((s,r) => s + (r.breakMin||0), 0);
+    const partyMin   = recs.reduce((s,r) => s + (r.partyMin||0), 0);
+    const vacationMin = recs.reduce((s,r) => s + (r.vacationMin||0), 0);
     
     // 時間休の時間を計算
     const ds = dayStatuses.find(s => s.date === date);
@@ -604,11 +605,13 @@ function renderMonthlyRecords(monthRecs) {
     return `<div class="monthly-record-item" onclick="openDayDetail('${date}')">
       <div class="mr-date" style="color:${dateColor};">${date}（${dow}）</div>
       <div class="mr-row">
-        <span>通常: ${fmtMin(normalMin)}</span>
-        <span>時間外: ${fmtMin(otMin)}</span>
-        <span>休憩: ${fmtMin(breakMin)}</span>
+        ${normalMin > 0 ? `<span>通常: ${fmtMin(normalMin)}</span>` : ''}
+        ${otMin > 0 ? `<span>時間外: ${fmtMin(otMin)}</span>` : ''}
+        ${vacationMin > 0 ? `<span>休暇中業務: ${fmtMin(vacationMin)}</span>` : ''}
+        ${breakMin > 0 ? `<span>休憩: ${fmtMin(breakMin)}</span>` : ''}
         ${partyMin > 0 ? `<span>懇親会: ${fmtMin(partyMin)}</span>` : ''}
         ${hourlyMin > 0 ? `<span>時間休: ${fmtMin(hourlyMin)}</span>` : ''}
+        ${(normalMin === 0 && otMin === 0 && vacationMin === 0 && breakMin === 0 && partyMin === 0) ? '<span class="text-sub">記録あり</span>' : ''}
       </div>
     </div>`;
   }).join('');
