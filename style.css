@@ -30,6 +30,25 @@ html, body {
   overflow: hidden;
 }
 
+/* PC表示をスマートフォンサイズに固定 */
+@media (min-width: 768px) {
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background: #1a2a35;
+  }
+  
+  #app {
+    width: 390px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--home-bg);
+    box-shadow: 0 0 20px rgba(0,0,0,.3);
+  }
+}
+
 /* ===== ヘッダー ===== */
 #app-header {
   background: #1e3a4a;
@@ -91,6 +110,16 @@ html, body {
   -webkit-overflow-scrolling: touch;
 }
 .page.active { display: flex; flex-direction: column; }
+
+@media (min-width: 768px) {
+  .page {
+    position: absolute;
+    top: var(--header-h);
+    bottom: var(--nav-h);
+    left: 0;
+    right: 0;
+  }
+}
 
 /* ===== ホーム画面 ===== */
 #page-home {
