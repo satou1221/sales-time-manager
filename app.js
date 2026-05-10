@@ -1263,3 +1263,50 @@ function splitWorkTime(startDt, endDt, dateStr) {
   }
   return { normal: normalMin, ot: otMin, vacation: vacationMin };
 }
+
+
+// ============================================================
+// アプリ化ガイド関数
+// ============================================================
+function showInstallGuide() {
+  const modal = document.getElementById('install-guide-modal');
+  const iosGuide = document.getElementById('ios-guide');
+  const androidGuide = document.getElementById('android-guide');
+  
+  // OSを判定
+  const ua = navigator.userAgent.toLowerCase();
+  const isIOS = /iphone|ipad|ipod/.test(ua);
+  const isAndroid = /android/.test(ua);
+  
+  // 該当するガイドのみを表示
+  if (isIOS) {
+    iosGuide.style.display = 'block';
+    androidGuide.style.display = 'none';
+  } else if (isAndroid) {
+    iosGuide.style.display = 'none';
+    androidGuide.style.display = 'block';
+  } else {
+    // PCの場合は両方表示
+    iosGuide.style.display = 'block';
+    androidGuide.style.display = 'block';
+  }
+  
+  modal.style.display = 'flex';
+}
+
+function closeInstallGuide() {
+  const modal = document.getElementById('install-guide-modal');
+  modal.style.display = 'none';
+}
+
+// モーダルのクリック時に閉じる処理
+document.addEventListener('DOMContentLoaded', () => {
+  const installGuideModal = document.getElementById('install-guide-modal');
+  if (installGuideModal) {
+    installGuideModal.addEventListener('click', (e) => {
+      if (e.target === installGuideModal) {
+        closeInstallGuide();
+      }
+    });
+  }
+});
