@@ -19,6 +19,10 @@
   <h2>&#128203; 初期設定</h2>
   <p>アプリを使用する前に、あなたの情報を登録してください。</p>
   <div class="form-group">
+    <label class="form-label">社員番号 * <span class="text-xs" style="color:#ff8a80;font-weight:normal;">※6桁の数字</span></label>
+    <input type="number" id="setup-emp-id" class="form-input" placeholder="例：123456" pattern="\d{6}">
+  </div>
+  <div class="form-group">
     <label class="form-label">氏名 * <span class="text-xs" style="color:#ff8a80;font-weight:normal;">※姓と名の間にスペースを入れない</span></label>
     <input type="text" id="setup-name" class="form-input" placeholder="例：山田太郎">
   </div>
@@ -223,6 +227,10 @@
   <!-- ユーザー設定 -->
   <div class="card">
     <div class="card-title">&#128100; ユーザー設定</div>
+    <div class="form-group">
+      <label class="form-label">社員番号 <span class="text-xs" style="color:#e53935;font-weight:normal;">※6桁の数字</span></label>
+      <input type="number" id="cfg-emp-id" class="form-input" placeholder="例：123456" pattern="\d{6}">
+    </div>
     <div class="form-group">
       <label class="form-label">氏名 <span class="text-xs" style="color:#e53935;font-weight:normal;">※姓と名の間にスペースを入れない</span></label>
       <input type="text" id="cfg-name" class="form-input" placeholder="例：山田太郎">
@@ -475,6 +483,6 @@
 <!-- ===== トースト ===== -->
 <div id="toast"></div>
 
-<script src="app.js?v=1.11"></script>
+<script src="app.js?v=1.12"></script>
 </body>
 </html>

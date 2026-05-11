@@ -1,5 +1,5 @@
 /* ============================================================
-   営業部 業務時間管理 app.js  v1.7
+   営業部 業務時間管理 app.js  v1.8
    - localStorage ベース（サーバー不要・費用ゼロ）
    - PWA対応（オフライン動作）
    ============================================================ */
@@ -82,15 +82,19 @@ function hideSetupScreen() {
   document.getElementById('setup-screen').style.display = 'none';
 }
 function saveSetup() {
+  const empId = document.getElementById('setup-emp-id').value.trim();
   const name  = document.getElementById('setup-name').value.trim();
   const dept  = document.getElementById('setup-dept').value.trim();
   const start = document.getElementById('setup-start').value || '08:30';
   const end   = document.getElementById('setup-end').value   || '17:30';
   const bStart = document.getElementById('setup-break-start').value || '12:00';
   const bEnd   = document.getElementById('setup-break-end').value   || '13:00';
+  
+  if (!/^\d{6}$/.test(empId)) { showToast('社員番号は6桁の数字で入力してください'); return; }
   if (!name) { showToast('氏名を入力してください'); return; }
-  if (!dept) { showToast('部門を入力してください'); return; }
-  currentUser = { name, dept, workStart: start, workEnd: end, breakStart: bStart, breakEnd: bEnd };
+  if (!dept) { showToast('部門を選択してください'); return; }
+  
+  currentUser = { empId, name, dept, workStart: start, workEnd: end, breakStart: bStart, breakEnd: bEnd };
   saveUser();
   hideSetupScreen();
   initApp();
@@ -113,7 +117,7 @@ function initApp() {
 
 function updateHeaderUser() {
   if (!currentUser) return;
-  document.getElementById('header-name').textContent = currentUser.name;
+  document.getElementById('header-name').textContent = `${currentUser.empId || ''} ${currentUser.name}`;
   document.getElementById('header-dept').textContent = currentUser.dept;
 }
 
@@ -979,10 +983,11 @@ function exportCSV() {
   if (monthRecs.length === 0) { showToast('この月の記録がありません'); return; }
 
   const BOM     = '\uFEFF';
-  const headers = ['氏名','部門','日付','業務区分','開始日時','終了日時',
+  const headers = ['社員番号','氏名','部門','日付','業務区分','開始日時','終了日時',
                    '通常業務時間(分)','時間外時間(分)','休暇中業務時間(分)','休憩時間(分)','懇親会対応時間(分)','状態',
                    'メモ','記録作成日時','修正フラグ'];
   const rows = monthRecs.map(r => [
+    csvEsc(currentUser ? currentUser.empId : ''),
     csvEsc(r.name || ''),
     csvEsc(r.dept || ''),
     csvEsc(r.date || ''),
@@ -1233,24 +1238,28 @@ function toggleDayStatus(dateStr) {
 // ============================================================
 function loadSettingsForm() {
   if (!currentUser) return;
-  document.getElementById('cfg-name').value  = currentUser.name       || '';
-  document.getElementById('cfg-dept').value  = currentUser.dept       || '';
-  document.getElementById('cfg-start').value = currentUser.workStart  || '08:30';
-  document.getElementById('cfg-end').value   = currentUser.workEnd    || '17:30';
+  document.getElementById('cfg-emp-id').value = currentUser.empId      || '';
+  document.getElementById('cfg-name').value   = currentUser.name       || '';
+  document.getElementById('cfg-dept').value   = currentUser.dept       || '';
+  document.getElementById('cfg-start').value  = currentUser.workStart  || '08:30';
+  document.getElementById('cfg-end').value    = currentUser.workEnd    || '17:30';
   document.getElementById('cfg-break-start').value = currentUser.breakStart || '12:00';
   document.getElementById('cfg-break-end').value   = currentUser.breakEnd   || '13:00';
-
 }
 
 function saveUserConfig() {
+  const empId = document.getElementById('cfg-emp-id').value.trim();
   const name  = document.getElementById('cfg-name').value.trim();
   const dept  = document.getElementById('cfg-dept').value.trim();
   const start = document.getElementById('cfg-start').value || '08:30';
   const end   = document.getElementById('cfg-end').value   || '17:30';
   const bStart = document.getElementById('cfg-break-start').value || '12:00';
   const bEnd   = document.getElementById('cfg-break-end').value   || '13:00';
+  
+  if (!/^\d{6}$/.test(empId)) { showToast('社員番号は6桁の数字で入力してください'); return; }
   if (!name) { showToast('氏名を入力してください'); return; }
-  currentUser = { name, dept, workStart: start, workEnd: end, breakStart: bStart, breakEnd: bEnd };
+  
+  currentUser = { empId, name, dept, workStart: start, workEnd: end, breakStart: bStart, breakEnd: bEnd };
   saveUser();
   updateHeaderUser();
   showToast('設定を保存しました');
