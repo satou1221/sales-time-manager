@@ -278,10 +278,25 @@ html, body {
 }
 .wt-btn:active { transform: scale(.96); }
 .wt-btn.selected {
-  background: #2c5f7a;
-  border-color: #7ecbe8;
+  background: #27735a; /* 選択中はグリーンに変更 */
+  border-color: #a5d6a7;
   color: var(--white);
-  box-shadow: 0 0 0 2px rgba(126,203,232,.35);
+  box-shadow: 0 0 12px rgba(39,115,90,.6);
+  font-weight: 800;
+  position: relative;
+}
+.wt-btn.selected::after {
+  content: '選択中';
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  background: #ffeb3b;
+  color: #1b5e20;
+  font-size: 0.55rem;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: 900;
+  box-shadow: 0 2px 4px rgba(0,0,0,.2);
 }
 .wt-btn.party-btn {
   border-color: #7a5a9a;

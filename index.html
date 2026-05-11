@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="業務時間">
   <title>営業部 業務時間管理</title>
-  <link rel="stylesheet" href="style.css?v=1.9">
+  <link rel="stylesheet" href="style.css?v=1.11">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
@@ -19,12 +19,16 @@
   <h2>&#128203; 初期設定</h2>
   <p>アプリを使用する前に、あなたの情報を登録してください。</p>
   <div class="form-group">
-    <label class="form-label">氏名 *</label>
-    <input type="text" id="setup-name" class="form-input" placeholder="例：山田 太郎">
+    <label class="form-label">氏名 * <span class="text-xs" style="color:#ff8a80;font-weight:normal;">※姓と名の間にスペースを入れない</span></label>
+    <input type="text" id="setup-name" class="form-input" placeholder="例：山田太郎">
   </div>
   <div class="form-group">
     <label class="form-label">部門 *</label>
-    <input type="text" id="setup-dept" class="form-input" placeholder="例：営業1課">
+    <select id="setup-dept" class="form-input">
+      <option value="">選択してください</option>
+      <option value="営業部本社">営業部本社</option>
+      <option value="営業部福岡支社">営業部福岡支社</option>
+    </select>
   </div>
   <div class="form-row">
     <div class="form-group">
@@ -220,12 +224,15 @@
   <div class="card">
     <div class="card-title">&#128100; ユーザー設定</div>
     <div class="form-group">
-      <label class="form-label">氏名</label>
-      <input type="text" id="cfg-name" class="form-input" placeholder="氏名">
+      <label class="form-label">氏名 <span class="text-xs" style="color:#e53935;font-weight:normal;">※姓と名の間にスペースを入れない</span></label>
+      <input type="text" id="cfg-name" class="form-input" placeholder="例：山田太郎">
     </div>
     <div class="form-group">
       <label class="form-label">部門</label>
-      <input type="text" id="cfg-dept" class="form-input" placeholder="例：営業1課">
+      <select id="cfg-dept" class="form-input">
+        <option value="営業部本社">営業部本社</option>
+        <option value="営業部福岡支社">営業部福岡支社</option>
+      </select>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -468,6 +475,6 @@
 <!-- ===== トースト ===== -->
 <div id="toast"></div>
 
-<script src="app.js?v=1.10"></script>
+<script src="app.js?v=1.11"></script>
 </body>
 </html>

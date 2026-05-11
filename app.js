@@ -1,5 +1,5 @@
 /* ============================================================
-   営業部 業務時間管理 app.js  v1.6
+   営業部 業務時間管理 app.js  v1.7
    - localStorage ベース（サーバー不要・費用ゼロ）
    - PWA対応（オフライン動作）
    ============================================================ */
@@ -1166,7 +1166,7 @@ function toggleDayStatus(dateStr) {
   let nextStatus = 'normal';
   if (currentStatus === 'normal')  nextStatus = 'holiday';
   else if (currentStatus === 'holiday') nextStatus = 'paid';
-  else if (currentStatus === 'paid')    nextStatus = 'hourly';
+  else if (currentStatus === 'paid')    nextStatus = 'normal'; // 時間休(hourly)はタップサイクルから除外
   else if (currentStatus === 'hourly')  nextStatus = 'normal';
 
   let hours = null;
