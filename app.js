@@ -1,5 +1,5 @@
 /* ============================================================
-   営業部 業務時間管理 app.js  v1.8
+   営業部 業務時間管理 app.js  v1.9
    - localStorage ベース（サーバー不要・費用ゼロ）
    - PWA対応（オフライン動作）
    ============================================================ */
@@ -585,25 +585,26 @@ function checkWarnConditions() {
     banner.classList.add('hidden');
   }
 
-  // 終業時刻の自動分割チェック
-  checkWorkEndSplit(now);
+  // 始業・終業時刻の自動分割チェック
+  checkWorkSplit(now);
 }
-
 // ============================================================
-// 業務押し忘れ防止：終業時刻の自動分割と20分後確認
+// 業務押し忘れ防止：始業・終業時刻の自動分割と継続確認
 // ============================================================
 let lastSplitCheckMin = -1;
 let otConfirmedId = null; // 確認済みのセッションID
 
-function checkWorkEndSplit(now) {
+function checkWorkSplit(now) {
   if (!activeSession || !currentUser || activeSession.type === BREAK_TYPE) return;
   
   const today = toDateStr(now);
   if (isHolidayOrSpecial(today)) return; // 休日は分割不要
 
+  const [sh, sm] = currentUser.workStart.split(':').map(Number);
   const [eh, em] = currentUser.workEnd.split(':').map(Number);
-  const endMin   = eh * 60 + em;
-  const nowMin   = now.getHours() * 60 + now.getMinutes();
+  const startMinTime = sh * 60 + sm;
+  const endMinTime   = eh * 60 + em;
+  const nowMin       = now.getHours() * 60 + now.getMinutes();
   
   // 1分に1回だけ実行
   if (nowMin === lastSplitCheckMin) return;
@@ -612,11 +613,31 @@ function checkWorkEndSplit(now) {
   const startDt = new Date(activeSession.startTime);
   const startMin = startDt.getHours() * 60 + startDt.getMinutes();
 
-  // 1. 終業時刻を跨いだ瞬間の自動分割
-  if (startMin < endMin && nowMin === endMin) {
+  // 1. 始業時刻を跨いだ瞬間の自動分割（時間外 → 通常業務）
+  if (startMin < startMinTime && nowMin === startMinTime) {
     const workType = activeSession.workType;
     const memo     = activeSession.memo;
-    endCurrentSession(); // 終業時刻で一旦終了（内部で自動的に分割計算される）
+    endCurrentSession(); // 始業時刻で一旦終了
+    
+    // 即座に「通常業務」として新しいセッションを開始
+    activeSession = {
+      id:        genId(),
+      workType:  workType,
+      type:      'work',
+      startTime: now.toISOString(),
+      memo:      (memo ? memo + ' ' : '') + '（始業時刻により自動分割）'
+    };
+    saveActive();
+    updateHomeStatus();
+    showToast('始業時刻のため履歴を分割しました');
+    return;
+  }
+
+  // 2. 終業時刻を跨いだ瞬間の自動分割（通常業務 → 時間外）
+  if (startMin < endMinTime && nowMin === endMinTime) {
+    const workType = activeSession.workType;
+    const memo     = activeSession.memo;
+    endCurrentSession(); // 終業時刻で一旦終了
     
     // 即座に「時間外」として新しいセッションを開始
     activeSession = {
@@ -624,31 +645,25 @@ function checkWorkEndSplit(now) {
       workType:  workType,
       type:      'work',
       startTime: now.toISOString(),
-      memo:      memo + '（終業時刻により自動分割）'
+      memo:      (memo ? memo + ' ' : '') + '（終業時刻により自動分割）'
     };
     saveActive();
     updateHomeStatus();
-    showToast('終業時刻を過ぎたため、時間外として新しく記録を開始しました');
+    showToast('終業時刻のため履歴を分割しました');
     return;
   }
 
-  // 2. 終業20分後の確認
-  if (nowMin === endMin + 20 && activeSession.id !== otConfirmedId) {
-    const confirmed = confirm(
-      `終業時刻から20分経過しました。\n` +
-      `「${activeSession.workType}」の時間外計測を続行しますか？\n\n` +
-      `[はい] → 計測を続ける\n` +
-      `[いいえ] → 終業時刻以降の記録を削除して終了する`
-    );
-    
+  // 3. 終業20分後の継続確認
+  if (nowMin === endMinTime + 20 && otConfirmedId !== activeSession.id) {
+    const confirmed = confirm("終業時刻から20分経過しました。時間外計測を続行しますか？\n\n[はい] 続行する\n[いいえ] 終業時刻で終了する（以降の記録を削除）");
     if (confirmed) {
-      otConfirmedId = activeSession.id; // このセッションは確認済みとする
+      otConfirmedId = activeSession.id;
     } else {
-      // 終業時刻で終了したことにして、現在のセッションを削除
+      // 終業時刻以降の記録を破棄して終了
       activeSession = null;
       saveActive();
       updateHomeStatus();
-      showToast('終業時刻以降の記録を破棄しました');
+      showToast('終業時刻で記録を保存しました');
     }
   }
 }
