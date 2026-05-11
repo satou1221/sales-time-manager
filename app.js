@@ -1,5 +1,5 @@
 /* ============================================================
-   営業部 業務時間管理 app.js  v1.4
+   営業部 業務時間管理 app.js  v1.5
    - localStorage ベース（サーバー不要・費用ゼロ）
    - PWA対応（オフライン動作）
    ============================================================ */
@@ -102,6 +102,8 @@ function initApp() {
   updateHomeStatus();
   startElapsedTimer();
   updateDayStatusBanner();
+  checkStaleSession();       // 前日業務未終了チェック
+  startWarnTimer();          // 長時間同一業務・待機中警告タイマー起動
   renderSettingsCalendar();
   loadSettingsForm();
   showPage('home');
@@ -265,6 +267,8 @@ function _startNewWork(workType, btn) {
   selectedWorkType = workType;
   document.querySelectorAll('.wt-btn').forEach(b => b.classList.remove('selected'));
   if (btn) btn.classList.add('selected');
+  idleStartTime = null; // 待機タイマーリセット
+  checkWarnConditions(); // 警告バナー即時更新
   updateHomeStatus();
   updateElapsed();
   if (currentPage === 'today') renderTodayPage();
@@ -279,6 +283,8 @@ function endWork() {
     showToast('業務中ではありません'); return;
   }
   endCurrentSession();
+  idleStartTime = new Date(); // 待機開始時刻をリセット
+  checkWarnConditions();     // 警告バナー即時更新
   updateHomeStatus();
   updateElapsed();
   if (currentPage === 'today') renderTodayPage();
@@ -349,6 +355,7 @@ function startBreak() {
     memo:      ''
   };
   saveActive();
+  checkWarnConditions(); // 警告バナー即時更新（休憩中は警告非表示）
   updateHomeStatus();
   updateElapsed();
   if (currentPage === 'today') renderTodayPage();
@@ -426,6 +433,121 @@ function updateDayStatusBanner() {
   } else if (holiday) {
     banner.classList.remove('hidden');
     text.textContent = `本日は祝日・特別休日です（${holiday.name}）`;
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+// ============================================================
+// 業務押し忘れ防止：前日未終了セッションチェック
+// ============================================================
+function checkStaleSession() {
+  if (!activeSession) return;
+  const today     = toDateStr(new Date());
+  const sessDate  = toDateStr(new Date(activeSession.startTime));
+  if (sessDate === today) return; // 本日のセッションは正常
+
+  // 前日以前のセッションが残っている
+  const startStr = fmtTime(new Date(activeSession.startTime));
+  const typeStr  = activeSession.workType || '業務';
+  const confirmed = confirm(
+    `⚠️ 前回の「${typeStr}」（${sessDate} ${startStr}開始）が終了されずに残っています。\n\n` +
+    `[はい] → そのまま終了として記録する\n` +
+    `[いいえ] → 記録を削除する`
+  );
+  if (confirmed) {
+    // 前日の終業時刻（設定の終業時刻）で終了として記録
+    const sessDateObj = new Date(sessDate + 'T00:00:00');
+    const [eh, em]    = (currentUser ? currentUser.workEnd : '17:30').split(':').map(Number);
+    const endDt       = new Date(sessDateObj.getTime() + (eh * 60 + em) * 60000);
+    const startDt     = new Date(activeSession.startTime);
+    const durMin      = Math.floor((endDt - startDt) / 60000);
+    if (durMin > 0) {
+      const { normal, ot, vacation } = splitWorkTime(startDt, endDt, sessDate);
+      records.push({
+        id:          activeSession.id,
+        workType:    activeSession.workType,
+        type:        activeSession.type,
+        startTime:   activeSession.startTime,
+        endTime:     endDt.toISOString(),
+        memo:        (activeSession.memo || '') + '（翌日起動時に自動終了）',
+        date:        sessDate,
+        normalMin:   normal,
+        otMin:       ot,
+        vacationMin: vacation,
+        breakMin:    0,
+        partyMin:    0,
+        name:        currentUser ? currentUser.name : '',
+        dept:        currentUser ? currentUser.dept  : '',
+        createdAt:   new Date().toISOString(),
+        modified:    true
+      });
+      saveRecords();
+    }
+  }
+  activeSession = null;
+  saveActive();
+  updateHomeStatus();
+  showToast(confirmed ? '前回の業務を記録しました' : '前回の未記録セッションを削除しました');
+}
+
+// ============================================================
+// 業務押し忘れ防止：長時間同一業務・待機中警告タイマー
+// ============================================================
+const WARN_SAME_WORK_MIN  = 90;  // 同一業務区分でこの分数超過で警告
+const WARN_IDLE_MIN       = 30;  // 待機中のままこの分数超過で警告
+let warnTimer = null;
+let idleStartTime = null;  // 待機開始時刻
+
+function startWarnTimer() {
+  if (warnTimer) clearInterval(warnTimer);
+  idleStartTime = activeSession ? null : new Date();
+  warnTimer = setInterval(checkWarnConditions, 60000); // 1分ごとにチェック
+  checkWarnConditions(); // 起動時に即時実行
+}
+
+function checkWarnConditions() {
+  const banner = document.getElementById('warn-banner');
+  const text   = document.getElementById('warn-banner-text');
+  if (!banner || !text) return;
+
+  const now = new Date();
+
+  // 待機中警告：待機開始からWARN_IDLE_MIN分超過
+  if (!activeSession) {
+    if (!idleStartTime) idleStartTime = now;
+    const idleMin = Math.floor((now - idleStartTime) / 60000);
+    // 就業時間内かつ待機中の場合のみ警告
+    if (idleMin >= WARN_IDLE_MIN && !isHolidayOrSpecial(toDateStr(now))) {
+      const [sh, sm] = (currentUser ? currentUser.workStart : '08:30').split(':').map(Number);
+      const [eh, em] = (currentUser ? currentUser.workEnd   : '17:30').split(':').map(Number);
+      const nowMin   = now.getHours() * 60 + now.getMinutes();
+      const inWork   = nowMin >= sh * 60 + sm && nowMin < eh * 60 + em;
+      if (inWork) {
+        banner.classList.remove('hidden');
+        text.textContent = `業務未開始のまま ${idleMin}分経過―業務区分をタップしてください`;
+        return;
+      }
+    }
+    banner.classList.add('hidden');
+    return;
+  }
+
+  // 業務中の場合：待機タイマーをリセット
+  idleStartTime = null;
+
+  // 休憩中は警告不要
+  if (activeSession.type === BREAK_TYPE) {
+    banner.classList.add('hidden');
+    return;
+  }
+
+  // 長時間同一業務区分警告
+  const start   = new Date(activeSession.startTime);
+  const elapsed = Math.floor((now - start) / 60000);
+  if (elapsed >= WARN_SAME_WORK_MIN) {
+    banner.classList.remove('hidden');
+    text.textContent = `「${activeSession.workType}」を ${elapsed}分継続中―業務区分の切り替えを確認してください`;
   } else {
     banner.classList.add('hidden');
   }

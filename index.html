@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="業務時間">
   <title>営業部 業務時間管理</title>
-  <link rel="stylesheet" href="style.css?v=1.8">
+  <link rel="stylesheet" href="style.css?v=1.9">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
@@ -57,6 +57,12 @@
   <div id="day-status-banner" class="hidden day-banner">
     <span id="day-status-text"></span>
     <span class="day-banner-sub">業務した場合は時間外扱い</span>
+  </div>
+
+  <!-- 業務押し忘れ警告バナー（必要時のみ表示） -->
+  <div id="warn-banner" class="hidden warn-banner">
+    <span>&#9888;&#65039;</span>
+    <span id="warn-banner-text"></span>
   </div>
 
   <!-- ① 現在の業務名 + 経過時間（横並び） -->
@@ -442,6 +448,6 @@
 <!-- ===== トースト ===== -->
 <div id="toast"></div>
 
-<script src="app.js?v=1.8"></script>
+<script src="app.js?v=1.9"></script>
 </body>
 </html>

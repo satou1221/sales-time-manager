@@ -147,6 +147,27 @@ html, body {
 }
 .day-banner-sub { font-size: .65rem; font-weight: 400; color: #ffb74d; }
 
+/* 長時間同一業務・業務終了忘れ警告バナー */
+.warn-banner {
+  background: rgba(229,57,53,.18);
+  border: 1px solid #e53935;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: .75rem;
+  font-weight: 700;
+  color: #ff8a80;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+  animation: warn-flash 1.5s ease-in-out infinite;
+}
+@keyframes warn-flash {
+  0%, 100% { border-color: #e53935; }
+  50%       { border-color: #ff8a80; }
+}
+
 /* ① 業務名＋経過時間 横並び行 */
 #home-top-row {
   display: flex;
@@ -203,7 +224,11 @@ html, body {
   font-weight: 700;
   letter-spacing: .05em;
 }
-.state-idle    { background: rgba(255,255,255,.15); color: #b8d4de; }
+.state-idle    { background: rgba(255,255,255,.15); color: #b8d4de; animation: pulse-idle 2s ease-in-out infinite; }
+@keyframes pulse-idle {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .45; }
+}
 .state-working { background: #27735a; color: var(--white); }
 .state-break   { background: #c0621a; color: var(--white); }
 .state-party   { background: #5e3d7a; color: var(--white); }
