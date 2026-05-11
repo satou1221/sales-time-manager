@@ -1,5 +1,5 @@
 /* ============================================================
-   営業部 業務時間管理 app.js  v1.5
+   営業部 業務時間管理 app.js  v1.6
    - localStorage ベース（サーバー不要・費用ゼロ）
    - PWA対応（オフライン動作）
    ============================================================ */
@@ -86,9 +86,11 @@ function saveSetup() {
   const dept  = document.getElementById('setup-dept').value.trim();
   const start = document.getElementById('setup-start').value || '08:30';
   const end   = document.getElementById('setup-end').value   || '17:30';
+  const bStart = document.getElementById('setup-break-start').value || '12:00';
+  const bEnd   = document.getElementById('setup-break-end').value   || '13:00';
   if (!name) { showToast('氏名を入力してください'); return; }
   if (!dept) { showToast('部門を入力してください'); return; }
-  currentUser = { name, dept, workStart: start, workEnd: end };
+  currentUser = { name, dept, workStart: start, workEnd: end, breakStart: bStart, breakEnd: bEnd };
   saveUser();
   hideSetupScreen();
   initApp();
@@ -495,7 +497,8 @@ function checkStaleSession() {
 // 業務押し忘れ防止：長時間同一業務・待機中警告タイマー
 // ============================================================
 const WARN_SAME_WORK_MIN  = 90;  // 同一業務区分でこの分数超過で警告
-const WARN_IDLE_MIN       = 30;  // 待機中のままこの分数超過で警告
+const WARN_IDLE_MIN       = 10;  // 待機中のままこの分数超過で警告
+const WARN_BREAK_MIN      = 10;  // 休憩時間内に休憩未開始で警告
 let warnTimer = null;
 let idleStartTime = null;  // 待機開始時刻
 
@@ -517,16 +520,42 @@ function checkWarnConditions() {
   if (!activeSession) {
     if (!idleStartTime) idleStartTime = now;
     const idleMin = Math.floor((now - idleStartTime) / 60000);
-    // 就業時間内かつ待機中の場合のみ警告
-    if (idleMin >= WARN_IDLE_MIN && !isHolidayOrSpecial(toDateStr(now))) {
-      const [sh, sm] = (currentUser ? currentUser.workStart : '08:30').split(':').map(Number);
-      const [eh, em] = (currentUser ? currentUser.workEnd   : '17:30').split(':').map(Number);
-      const nowMin   = now.getHours() * 60 + now.getMinutes();
-      const inWork   = nowMin >= sh * 60 + sm && nowMin < eh * 60 + em;
-      if (inWork) {
-        banner.classList.remove('hidden');
-        text.textContent = `業務未開始のまま ${idleMin}分経過―業務区分をタップしてください`;
-        return;
+    const today   = toDateStr(now);
+    const isHol   = isHolidayOrSpecial(today);
+
+    if (!isHol && currentUser) {
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      
+      // 1. 休憩時間内のチェック
+      const [bsH, bsM] = (currentUser.breakStart || '12:00').split(':').map(Number);
+      const [beH, beM] = (currentUser.breakEnd   || '13:00').split(':').map(Number);
+      const bStartMin = bsH * 60 + bsM;
+      const bEndMin   = beH * 60 + beM;
+      
+      if (nowMin >= bStartMin && nowMin < bEndMin) {
+        const breakIdleMin = Math.floor((now - new Date(today + 'T' + (currentUser.breakStart || '12:00') + ':00')) / 60000);
+        if (breakIdleMin >= WARN_BREAK_MIN) {
+          banner.classList.remove('hidden');
+          text.textContent = `休憩時間ですが休憩が開始されていません（${breakIdleMin}分経過）`;
+          return;
+        }
+      }
+
+      // 2. 就業時間内のチェック
+      const [sh, sm] = (currentUser.workStart || '08:30').split(':').map(Number);
+      const [eh, em] = (currentUser.workEnd   || '17:30').split(':').map(Number);
+      const startMin = sh * 60 + sm;
+      const endMin   = eh * 60 + em;
+      
+      if (nowMin >= startMin && nowMin < endMin) {
+        // 休憩時間は除く
+        if (nowMin < bStartMin || nowMin >= bEndMin) {
+          if (idleMin >= WARN_IDLE_MIN) {
+            banner.classList.remove('hidden');
+            text.textContent = `業務未開始のまま ${idleMin}分経過―業務区分をタップしてください`;
+            return;
+          }
+        }
       }
     }
     banner.classList.add('hidden');
@@ -550,6 +579,73 @@ function checkWarnConditions() {
     text.textContent = `「${activeSession.workType}」を ${elapsed}分継続中―業務区分の切り替えを確認してください`;
   } else {
     banner.classList.add('hidden');
+  }
+
+  // 終業時刻の自動分割チェック
+  checkWorkEndSplit(now);
+}
+
+// ============================================================
+// 業務押し忘れ防止：終業時刻の自動分割と20分後確認
+// ============================================================
+let lastSplitCheckMin = -1;
+let otConfirmedId = null; // 確認済みのセッションID
+
+function checkWorkEndSplit(now) {
+  if (!activeSession || !currentUser || activeSession.type === BREAK_TYPE) return;
+  
+  const today = toDateStr(now);
+  if (isHolidayOrSpecial(today)) return; // 休日は分割不要
+
+  const [eh, em] = currentUser.workEnd.split(':').map(Number);
+  const endMin   = eh * 60 + em;
+  const nowMin   = now.getHours() * 60 + now.getMinutes();
+  
+  // 1分に1回だけ実行
+  if (nowMin === lastSplitCheckMin) return;
+  lastSplitCheckMin = nowMin;
+
+  const startDt = new Date(activeSession.startTime);
+  const startMin = startDt.getHours() * 60 + startDt.getMinutes();
+
+  // 1. 終業時刻を跨いだ瞬間の自動分割
+  if (startMin < endMin && nowMin === endMin) {
+    const workType = activeSession.workType;
+    const memo     = activeSession.memo;
+    endCurrentSession(); // 終業時刻で一旦終了（内部で自動的に分割計算される）
+    
+    // 即座に「時間外」として新しいセッションを開始
+    activeSession = {
+      id:        genId(),
+      workType:  workType,
+      type:      'work',
+      startTime: now.toISOString(),
+      memo:      memo + '（終業時刻により自動分割）'
+    };
+    saveActive();
+    updateHomeStatus();
+    showToast('終業時刻を過ぎたため、時間外として新しく記録を開始しました');
+    return;
+  }
+
+  // 2. 終業20分後の確認
+  if (nowMin === endMin + 20 && activeSession.id !== otConfirmedId) {
+    const confirmed = confirm(
+      `終業時刻から20分経過しました。\n` +
+      `「${activeSession.workType}」の時間外計測を続行しますか？\n\n` +
+      `[はい] → 計測を続ける\n` +
+      `[いいえ] → 終業時刻以降の記録を削除して終了する`
+    );
+    
+    if (confirmed) {
+      otConfirmedId = activeSession.id; // このセッションは確認済みとする
+    } else {
+      // 終業時刻で終了したことにして、現在のセッションを削除
+      activeSession = null;
+      saveActive();
+      updateHomeStatus();
+      showToast('終業時刻以降の記録を破棄しました');
+    }
   }
 }
 
@@ -1141,6 +1237,8 @@ function loadSettingsForm() {
   document.getElementById('cfg-dept').value  = currentUser.dept       || '';
   document.getElementById('cfg-start').value = currentUser.workStart  || '08:30';
   document.getElementById('cfg-end').value   = currentUser.workEnd    || '17:30';
+  document.getElementById('cfg-break-start').value = currentUser.breakStart || '12:00';
+  document.getElementById('cfg-break-end').value   = currentUser.breakEnd   || '13:00';
 
 }
 
@@ -1149,8 +1247,10 @@ function saveUserConfig() {
   const dept  = document.getElementById('cfg-dept').value.trim();
   const start = document.getElementById('cfg-start').value || '08:30';
   const end   = document.getElementById('cfg-end').value   || '17:30';
+  const bStart = document.getElementById('cfg-break-start').value || '12:00';
+  const bEnd   = document.getElementById('cfg-break-end').value   || '13:00';
   if (!name) { showToast('氏名を入力してください'); return; }
-  currentUser = { name, dept, workStart: start, workEnd: end };
+  currentUser = { name, dept, workStart: start, workEnd: end, breakStart: bStart, breakEnd: bEnd };
   saveUser();
   updateHeaderUser();
   showToast('設定を保存しました');
