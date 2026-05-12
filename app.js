@@ -1,5 +1,5 @@
 /* ============================================================
-   営業部 業務時間管理 app.js  v1.14
+   営業部 業務時間管理 app.js  v1.15
    - localStorage ベース（サーバー不要・費用ゼロ）
    - PWA対応（オフライン動作）
    ============================================================ */
@@ -321,7 +321,7 @@ function renderPieChart(canvasId, dataMap) {
 
   const displayLabels = labels.map(l => labelNames[l] || l);
 
-  // Chart.jsの組み込み凡例は無効化し、HTMLで凡例を描画
+  // Chart.js組み込み凡例を使用（グラフ内に包含）
   charts[canvasId] = new Chart(ctx, {
     type: 'pie',
     data: {
@@ -329,15 +329,43 @@ function renderPieChart(canvasId, dataMap) {
       datasets: [{
         data: data,
         backgroundColor: labels.map(l => colors[l] || '#90a4ae'),
-        borderColor: 'rgba(255,255,255,0.3)',
+        borderColor: 'rgba(255,255,255,0.6)',
         borderWidth: 2
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding: { top: 4, bottom: 4 } },
       plugins: {
-        legend: { display: false },  // 組み込み凡例を非表示
+        legend: {
+          display: true,
+          position: 'right',
+          labels: {
+            color: '#333333',
+            font: { size: 11, family: "'Hiragino Sans', 'Noto Sans JP', sans-serif" },
+            padding: 10,
+            usePointStyle: true,
+            pointStyle: 'rectRounded',
+            pointStyleWidth: 14,
+            generateLabels: function(chart) {
+              const ds = chart.data.datasets[0];
+              const total = ds.data.reduce((a, b) => a + b, 0);
+              return chart.data.labels.map((label, i) => {
+                const val = ds.data[i];
+                const pct = Math.round((val / total) * 100);
+                return {
+                  text: label + ' ' + pct + '%',
+                  fillStyle: ds.backgroundColor[i],
+                  strokeStyle: ds.borderColor,
+                  lineWidth: 1,
+                  hidden: false,
+                  index: i
+                };
+              });
+            }
+          }
+        },
         tooltip: {
           callbacks: {
             label: function(context) {
@@ -354,23 +382,9 @@ function renderPieChart(canvasId, dataMap) {
     }
   });
 
-  // HTML凡例をグラフの外側に描画
+  // HTML凡例は非表示（Chart.js組み込みを使用）
   const legendEl = document.getElementById(canvasId + '-legend');
-  if (legendEl) {
-    const total = data.reduce((a, b) => a + b, 0);
-    legendEl.innerHTML = labels.map((l, i) => {
-      const val = data[i];
-      const h = Math.floor(val / 60);
-      const m = val % 60;
-      const pct = Math.round((val / total) * 100);
-      const name = labelNames[l] || l;
-      const color = colors[l] || '#90a4ae';
-      return `<div class="pie-legend-item">
-        <div class="pie-legend-color" style="background:${color};"></div>
-        <span>${name}: ${h}h${m}m (${pct}%)</span>
-      </div>`;
-    }).join('');
-  }
+  if (legendEl) legendEl.innerHTML = '';
 }
 
 // ============================================================
