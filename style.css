@@ -681,3 +681,27 @@ html, body {
 
 /* CSS変数補完 */
 :root { --primary-lt: #4a8fa8; }
+
+/* ===== 円グラフ HTML凡例 ===== */
+.pie-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 14px;
+  margin-top: 10px;
+  padding: 0 4px;
+}
+.pie-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: #333;
+  white-space: nowrap;
+}
+.pie-legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}

@@ -1,5 +1,5 @@
 /* ============================================================
-   営業部 業務時間管理 app.js  v1.13
+   営業部 業務時間管理 app.js  v1.14
    - localStorage ベース（サーバー不要・費用ゼロ）
    - PWA対応（オフライン動作）
    ============================================================ */
@@ -321,6 +321,7 @@ function renderPieChart(canvasId, dataMap) {
 
   const displayLabels = labels.map(l => labelNames[l] || l);
 
+  // Chart.jsの組み込み凡例は無効化し、HTMLで凡例を描画
   charts[canvasId] = new Chart(ctx, {
     type: 'pie',
     data: {
@@ -336,16 +337,7 @@ function renderPieChart(canvasId, dataMap) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            color: '#ffffff',
-            font: { size: 12 },
-            padding: 12,
-            usePointStyle: true,
-            pointStyleWidth: 12
-          }
-        },
+        legend: { display: false },  // 組み込み凡例を非表示
         tooltip: {
           callbacks: {
             label: function(context) {
@@ -361,6 +353,24 @@ function renderPieChart(canvasId, dataMap) {
       }
     }
   });
+
+  // HTML凡例をグラフの外側に描画
+  const legendEl = document.getElementById(canvasId + '-legend');
+  if (legendEl) {
+    const total = data.reduce((a, b) => a + b, 0);
+    legendEl.innerHTML = labels.map((l, i) => {
+      const val = data[i];
+      const h = Math.floor(val / 60);
+      const m = val % 60;
+      const pct = Math.round((val / total) * 100);
+      const name = labelNames[l] || l;
+      const color = colors[l] || '#90a4ae';
+      return `<div class="pie-legend-item">
+        <div class="pie-legend-color" style="background:${color};"></div>
+        <span>${name}: ${h}h${m}m (${pct}%)</span>
+      </div>`;
+    }).join('');
+  }
 }
 
 // ============================================================
