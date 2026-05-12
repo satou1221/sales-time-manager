@@ -1,5 +1,5 @@
 /* ============================================================
-   営業部 業務時間管理 app.js  v1.11
+   営業部 業務時間管理 app.js  v1.12
    - localStorage ベース（サーバー不要・費用ゼロ）
    - PWA対応（オフライン動作）
    ============================================================ */
@@ -333,7 +333,9 @@ function renderPieChart(canvasId, dataMap) {
               const val = context.raw;
               const h = Math.floor(val / 60);
               const m = val % 60;
-              return `${context.label}: ${h}時間${m}分`;
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const pct = Math.round((val / total) * 100);
+              return `${context.label}: ${h}時間${m}分 (${pct}%)`;
             }
           }
         }
@@ -364,55 +366,82 @@ function endCurrentSession() {
 function endSessionAt(endTime) {
   if (!activeSession) return;
   const start = new Date(activeSession.startTime);
-  const durMin = Math.floor((endTime - start) / 60000);
-
   const isParty = activeSession.workType === PARTY_TYPE;
   const isBreak = activeSession.type === BREAK_TYPE;
   const dateStr = toDateStr(start);
 
+  // 休憩や懇親会、または休日・有給の場合は分割不要
+  if (isBreak || isParty || isHolidayOrSpecial(dateStr)) {
+    saveRecordSegment(start, endTime, activeSession.workType, activeSession.type, activeSession.memo);
+  } else {
+    // 通常日：始業・終業時刻での分割が必要かチェック
+    const [sh, sm] = currentUser.workStart.split(':').map(Number);
+    const [eh, em] = currentUser.workEnd.split(':').map(Number);
+    const workStart = new Date(start); workStart.setHours(sh, sm, 0, 0);
+    const workEnd   = new Date(start); workEnd.setHours(eh, em, 0, 0);
+
+    let currentStart = new Date(start);
+    
+    // 分割ポイント（始業・終業）を配列にする
+    const splitPoints = [workStart, workEnd].filter(p => p > start && p < endTime).sort((a,b) => a-b);
+    
+    if (splitPoints.length === 0) {
+      saveRecordSegment(currentStart, endTime, activeSession.workType, activeSession.type, activeSession.memo);
+    } else {
+      splitPoints.forEach((p, idx) => {
+        const memoSuffix = idx === 0 && currentStart < workStart ? '（始業跨ぎ分割）' : '（終業跨ぎ分割）';
+        saveRecordSegment(currentStart, p, activeSession.workType, activeSession.type, (activeSession.memo || '') + memoSuffix);
+        currentStart = p;
+      });
+      saveRecordSegment(currentStart, endTime, activeSession.workType, activeSession.type, activeSession.memo);
+    }
+  }
+
+  activeSession = null;
+  saveActive();
+  updateHomeStatus();
+}
+
+function saveRecordSegment(startDt, endDt, workType, type, memo) {
+  const durMin = Math.floor((endDt - startDt) / 60000);
+  if (durMin <= 0) return;
+
+  const dateStr = toDateStr(startDt);
   let normalMin = 0, otMin = 0, breakMin = 0, partyMin = 0, vacationMin = 0;
 
-  if (isBreak) {
+  if (type === BREAK_TYPE) {
     breakMin = durMin;
-  } else if (isParty) {
+  } else if (workType === PARTY_TYPE) {
     partyMin = durMin;
   } else {
-    const { normal, ot, vacation } = splitWorkTime(start, endTime, dateStr);
-    normalMin = normal;
-    otMin     = ot;
-    vacationMin = vacation;
+    const res = splitWorkTime(startDt, endDt, dateStr);
+    normalMin = res.normal;
+    otMin = res.ot;
+    vacationMin = res.vacation;
   }
 
   const rec = {
-    id: activeSession.id,
+    id: genId(),
     date: dateStr,
-    workType: activeSession.workType,
-    type: activeSession.type,
-    startTime: activeSession.startTime,
-    endTime: endTime.toISOString(),
+    workType: workType,
+    type: type,
+    startTime: startDt.toISOString(),
+    endTime: endDt.toISOString(),
     durMin,
     normalMin,
     otMin,
     breakMin,
     partyMin,
     vacationMin,
-    memo: activeSession.memo || ''
+    memo: memo || '',
+    name: currentUser ? currentUser.name : '',
+    dept: currentUser ? currentUser.dept : '',
+    empNo: currentUser ? currentUser.empNo : '',
+    createdAt: new Date().toISOString()
   };
 
   records.push(rec);
   saveRecords();
-  activeSession = null;
-  saveActive();
-  updateHomeStatus();
-}rrentUser ? currentUser.name : '',
-    dept:        currentUser ? currentUser.dept  : '',
-    createdAt:   now.toISOString(),
-    modified:    false
-  };
-  records.push(rec);
-  saveRecords();
-  activeSession = null;
-  saveActive();
 }
 
 // ============================================================
