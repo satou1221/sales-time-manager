@@ -35,17 +35,24 @@ html, body {
   body {
     display: flex;
     justify-content: center;
-    align-items: flex-start;
+    align-items: center;
     background: #1a2a35;
+    height: 100vh;
+    overflow: hidden;
   }
   
   #app {
     width: 390px;
-    height: 100vh;
+    height: 844px; /* iPhone 12/13/14 Pro 相当の高さ */
+    max-height: 95vh;
     display: flex;
     flex-direction: column;
     background: var(--home-bg);
-    box-shadow: 0 0 20px rgba(0,0,0,.3);
+    box-shadow: 0 0 40px rgba(0,0,0,.5);
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 8px solid #333; /* ベゼル風 */
   }
 }
 
@@ -58,7 +65,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  position: fixed;
+  position: absolute;
   top: 0; left: 0; right: 0;
   z-index: 100;
   border-bottom: 1px solid rgba(255,255,255,.1);
@@ -68,7 +75,7 @@ html, body {
 
 /* ===== ナビゲーション（4タブ） ===== */
 #nav-bar {
-  position: fixed;
+  position: absolute;
   bottom: 0; left: 0; right: 0;
   height: var(--nav-h);
   background: #1e3a4a;
@@ -102,7 +109,7 @@ html, body {
 /* ===== ページ共通 ===== */
 .page {
   display: none;
-  position: fixed;
+  position: absolute;
   top: var(--header-h);
   bottom: var(--nav-h);
   left: 0; right: 0;
@@ -111,15 +118,7 @@ html, body {
 }
 .page.active { display: flex; flex-direction: column; }
 
-@media (min-width: 768px) {
-  .page {
-    position: absolute;
-    top: var(--header-h);
-    bottom: var(--nav-h);
-    left: 0;
-    right: 0;
-  }
-}
+
 
 /* ===== ホーム画面 ===== */
 #page-home {
