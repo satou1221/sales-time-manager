@@ -1,5 +1,5 @@
 /* ============================================================
-   営業部 業務時間管理 app.js  v1.15
+   営業部 業務時間管理 app.js  v1.16
    - localStorage ベース（サーバー不要・費用ゼロ）
    - PWA対応（オフライン動作）
    ============================================================ */
@@ -832,7 +832,7 @@ function renderTodayPage() {
     `${today}（${dayNames[d.getDay()]}）`;
 
   const todayRecs = records.filter(r => r.date === today)
-    .sort((a,b) => a.startTime.localeCompare(b.startTime));
+    .sort((a,b) => b.startTime.localeCompare(a.startTime)); // 最新順（降順）に変更
 
   // 集計
   const sumNormal = todayRecs.reduce((s,r) => s + (r.normalMin||0), 0);
@@ -848,13 +848,13 @@ function renderTodayPage() {
   document.getElementById("today-sum-party").textContent  = fmtMin(sumParty);
   document.getElementById("today-sum-vacation").textContent = fmtMin(sumVacation);
 
-  // 円グラフの描画
-  renderPieChart('todayChart', {
-    '通常': sumNormal,
-    '時間外': sumOT,
-    '休憩': sumBreak,
-    '懇親会': sumParty,
-    '休暇中': sumVacation
+  // 横棒グラフ（プログレスバー）の描画
+  renderWTSummary('today-wt-summary', {
+    normal: sumNormal,
+    ot: sumOT,
+    break: sumBreak,
+    party: sumParty,
+    vacation: sumVacation
   });
 
   // 履歴リスト
@@ -932,27 +932,53 @@ function renderMonthlyPage() {
   document.getElementById('sum-break').textContent  = fmtMin(totalBreak);
   document.getElementById('sum-party').textContent  = fmtMin(totalParty);
 
-  // 円グラフの描画
-  renderPieChart('monthlyChart', {
-    '通常': totalNormal,
-    '時間外': totalOT,
-    '休憩': totalBreak,
-    '懇親会': totalParty,
-    '休暇中': totalVacation
-  });
-
-  renderWTSummary(monthRecs, totalAll);
+  renderMonthlyWTSummary(monthRecs, totalAll);
   renderMonthlyRecords(monthRecs);
 }
 
-function renderWTSummary(monthRecs, totalAll) {
+// 本日ページ用の横棒グラフ描画
+function renderWTSummary(containerId, data) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  
+  const total = data.normal + data.ot + data.party + data.vacation;
+  if (total === 0) {
+    container.innerHTML = '<div class="text-sub text-sm text-center">業務記録なし</div>';
+    return;
+  }
+
+  const items = [
+    { label: '通常業務', min: data.normal, color: '#4fc3f7' },
+    { label: '時間外業務', min: data.ot, color: '#ef5350' },
+    { label: '懇親会対応', min: data.party, color: '#ffa726' },
+    { label: '休暇中業務', min: data.vacation, color: '#ab47bc' }
+  ].filter(i => i.min > 0).sort((a, b) => b.min - a.min);
+
+  container.innerHTML = items.map(item => {
+    const pct = Math.round(item.min / total * 100);
+    return `<div class="wt-summary-item" style="margin-bottom: 8px;">
+      <div style="flex: 1;">
+        <div style="font-size: 0.85rem; margin-bottom: 2px;">${item.label}</div>
+        <div class="wt-bar-wrap" style="height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden;">
+          <div class="wt-bar" style="width:${pct}%; height: 100%; background:${item.color};"></div>
+        </div>
+      </div>
+      <div style="text-align:right; min-width:70px; margin-left: 10px;">
+        <div style="font-weight: bold; font-size: 0.9rem;">${fmtMin(item.min)}</div>
+        <div style="font-size: 0.75rem; color: #6c757d;">${pct}%</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderMonthlyWTSummary(monthRecs, totalAll) {
   const wtMap = {};
   WORK_TYPES.forEach(t => wtMap[t] = 0);
   wtMap[PARTY_TYPE] = 0;
   monthRecs.forEach(r => {
     if (r.workType && r.workType !== BREAK_TYPE) {
       if (!wtMap[r.workType]) wtMap[r.workType] = 0;
-      wtMap[r.workType] += (r.normalMin||0) + (r.otMin||0) + (r.partyMin||0);
+      wtMap[r.workType] += (r.normalMin||0) + (r.otMin||0) + (r.partyMin||0) + (r.vacationMin||0);
     }
   });
   const list    = document.getElementById('wt-summary-list');

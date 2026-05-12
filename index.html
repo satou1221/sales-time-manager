@@ -135,9 +135,8 @@
     <div class="card-title">&#128197; 本日の集計</div>
     <div id="today-date-label" class="today-date-label"></div>
     <div class="summary-grid" id="today-summary">
-      <div style="grid-column: 1 / -1; margin-bottom: 4px;">
-        <canvas id="todayChart" style="height: 280px;"></canvas>
-        <div id="todayChart-legend" class="pie-legend"></div>
+      <!-- 本日の業務比率（横棒グラフ） -->
+      <div id="today-wt-summary" style="grid-column: 1 / -1; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #e9ecef;">
       </div>
       <div class="summary-item">
         <div class="s-label">通常業務</div>
@@ -182,10 +181,6 @@
 
     <!-- 月次集計サマリー -->
     <div class="summary-grid" id="monthly-summary">
-      <div style="grid-column: 1 / -1; margin-bottom: 4px;">
-        <canvas id="monthlyChart" style="height: 280px;"></canvas>
-        <div id="monthlyChart-legend" class="pie-legend"></div>
-      </div>
       <div class="summary-item">
         <div class="s-label">総業務時間</div>
         <div class="s-value" id="sum-total">0:00</div>
@@ -492,5 +487,5 @@
 <!-- ===== トースト ===== -->
 <div id="toast"></div>
 
-  <script src="app.js?v=1.15"></script></body>
+  <script src="app.js?v=1.16"></script></body>
 </html>
