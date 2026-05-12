@@ -1,5 +1,5 @@
 /* ============================================================
-   営業部 業務時間管理 app.js  v1.12
+   営業部 業務時間管理 app.js  v1.13
    - localStorage ベース（サーバー不要・費用ゼロ）
    - PWA対応（オフライン動作）
    ============================================================ */
@@ -301,22 +301,35 @@ function renderPieChart(canvasId, dataMap) {
   }
   ctx.style.display = 'block';
 
+  // 各業務区分を識別しやすい明確な色に設定
   const colors = {
-    '通常': '#2c5f7a',
-    '時間外': '#e53935',
-    '休憩': '#e65100',
-    '懇親会': '#6a1b9a',
-    '休暇中': '#00897b'
+    '通常':  '#4fc3f7',   // 明るい水色
+    '時間外': '#ef5350',  // 赤
+    '休憩':  '#66bb6a',   // 緑
+    '懇親会': '#ffa726',  // オレンジ
+    '休暇中': '#ab47bc'   // 紫
   };
+
+  // 凡例用ラベル（業務区分名を明示）
+  const labelNames = {
+    '通常':  '通常業務',
+    '時間外': '時間外業務',
+    '休憩':  '休憩',
+    '懇親会': '懇親会対応',
+    '休暇中': '休暇中業務'
+  };
+
+  const displayLabels = labels.map(l => labelNames[l] || l);
 
   charts[canvasId] = new Chart(ctx, {
     type: 'pie',
     data: {
-      labels: labels,
+      labels: displayLabels,
       datasets: [{
         data: data,
-        backgroundColor: labels.map(l => colors[l] || '#607d8b'),
-        borderWidth: 1
+        backgroundColor: labels.map(l => colors[l] || '#90a4ae'),
+        borderColor: 'rgba(255,255,255,0.3)',
+        borderWidth: 2
       }]
     },
     options: {
@@ -324,18 +337,24 @@ function renderPieChart(canvasId, dataMap) {
       maintainAspectRatio: false,
       plugins: {
         legend: {
-          position: 'right',
-          labels: { color: '#ffffff', font: { size: 10 } }
+          position: 'bottom',
+          labels: {
+            color: '#ffffff',
+            font: { size: 12 },
+            padding: 12,
+            usePointStyle: true,
+            pointStyleWidth: 12
+          }
         },
         tooltip: {
           callbacks: {
             label: function(context) {
-              const val = context.raw;
+              const val = data[context.dataIndex];
               const h = Math.floor(val / 60);
               const m = val % 60;
-              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const total = data.reduce((a, b) => a + b, 0);
               const pct = Math.round((val / total) * 100);
-              return `${context.label}: ${h}時間${m}分 (${pct}%)`;
+              return ` ${context.label}: ${h}時間${m}分 (${pct}%)`;
             }
           }
         }
