@@ -279,12 +279,72 @@ function _startNewWork(workType, btn) {
   updateElapsed();
   if (currentPage === 'today') renderTodayPage();
   showToast(`「${workType}」を開始しました`);
+}// ============================================================
+// 円グラフ描画 (Chart.js)
+// ============================================================
+let charts = {};
+function renderPieChart(canvasId, dataMap) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+
+  // 既存のチャートがあれば破棄
+  if (charts[canvasId]) {
+    charts[canvasId].destroy();
+  }
+
+  const labels = Object.keys(dataMap).filter(k => dataMap[k] > 0);
+  const data   = labels.map(k => dataMap[k]);
+  
+  if (data.length === 0) {
+    ctx.style.display = 'none';
+    return;
+  }
+  ctx.style.display = 'block';
+
+  const colors = {
+    '通常': '#2c5f7a',
+    '時間外': '#e53935',
+    '休憩': '#e65100',
+    '懇親会': '#6a1b9a',
+    '休暇中': '#00897b'
+  };
+
+  charts[canvasId] = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: labels.map(l => colors[l] || '#607d8b'),
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { color: '#ffffff', font: { size: 10 } }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const val = context.raw;
+              const h = Math.floor(val / 60);
+              const m = val % 60;
+              return `${context.label}: ${h}時間${m}分`;
+            }
+          }
+        }
+      }
+    }
+  });
 }
 
 // ============================================================
-// 業務終了
-// ============================================================
-function endWork() {
+// 業務区分別集計
+// ============================================================function endWork() {
   if (!activeSession || activeSession.type === BREAK_TYPE) {
     showToast('業務中ではありません'); return;
   }
@@ -296,12 +356,14 @@ function endWork() {
   if (currentPage === 'today') renderTodayPage();
   showToast('業務を終了しました');
 }
-
 function endCurrentSession() {
+  endSessionAt(new Date());
+}
+
+function endSessionAt(endTime) {
   if (!activeSession) return;
-  const now   = new Date();
   const start = new Date(activeSession.startTime);
-  const durMin = Math.floor((now - start) / 60000);
+  const durMin = Math.floor((endTime - start) / 60000);
 
   const isParty = activeSession.workType === PARTY_TYPE;
   const isBreak = activeSession.type === BREAK_TYPE;
@@ -314,26 +376,34 @@ function endCurrentSession() {
   } else if (isParty) {
     partyMin = durMin;
   } else {
-    const { normal, ot, vacation } = splitWorkTime(start, now, dateStr);
+    const { normal, ot, vacation } = splitWorkTime(start, endTime, dateStr);
     normalMin = normal;
     otMin     = ot;
     vacationMin = vacation;
   }
 
   const rec = {
-    id:          activeSession.id,
-    workType:    activeSession.workType,
-    type:        activeSession.type,
-    startTime:   activeSession.startTime,
-    endTime:     now.toISOString(),
-    memo:        activeSession.memo,
-    date:        dateStr,
-    normalMin:   normalMin,
-    otMin:       otMin,
-    breakMin:    breakMin,
-    partyMin:    partyMin,
-    vacationMin: vacationMin,
-    name:        currentUser ? currentUser.name : '',
+    id: activeSession.id,
+    date: dateStr,
+    workType: activeSession.workType,
+    type: activeSession.type,
+    startTime: activeSession.startTime,
+    endTime: endTime.toISOString(),
+    durMin,
+    normalMin,
+    otMin,
+    breakMin,
+    partyMin,
+    vacationMin,
+    memo: activeSession.memo || ''
+  };
+
+  records.push(rec);
+  saveRecords();
+  activeSession = null;
+  saveActive();
+  updateHomeStatus();
+}rrentUser ? currentUser.name : '',
     dept:        currentUser ? currentUser.dept  : '',
     createdAt:   now.toISOString(),
     modified:    false
@@ -617,14 +687,19 @@ function checkWorkSplit(now) {
   if (startMin < startMinTime && nowMin === startMinTime) {
     const workType = activeSession.workType;
     const memo     = activeSession.memo;
-    endCurrentSession(); // 始業時刻で一旦終了
+    
+    // 始業時刻ちょうどで終了させる
+    const splitTime = new Date(now);
+    splitTime.setHours(sh, sm, 0, 0);
+    
+    endSessionAt(splitTime); 
     
     // 即座に「通常業務」として新しいセッションを開始
     activeSession = {
       id:        genId(),
       workType:  workType,
       type:      'work',
-      startTime: now.toISOString(),
+      startTime: splitTime.toISOString(),
       memo:      (memo ? memo + ' ' : '') + '（始業時刻により自動分割）'
     };
     saveActive();
@@ -637,14 +712,19 @@ function checkWorkSplit(now) {
   if (startMin < endMinTime && nowMin === endMinTime) {
     const workType = activeSession.workType;
     const memo     = activeSession.memo;
-    endCurrentSession(); // 終業時刻で一旦終了
+    
+    // 終業時刻ちょうどで終了させる
+    const splitTime = new Date(now);
+    splitTime.setHours(eh, em, 0, 0);
+    
+    endSessionAt(splitTime);
     
     // 即座に「時間外」として新しいセッションを開始
     activeSession = {
       id:        genId(),
       workType:  workType,
       type:      'work',
-      startTime: now.toISOString(),
+      startTime: splitTime.toISOString(),
       memo:      (memo ? memo + ' ' : '') + '（終業時刻により自動分割）'
     };
     saveActive();
@@ -694,6 +774,15 @@ function renderTodayPage() {
   document.getElementById("today-sum-break").textContent  = fmtMin(sumBreak);
   document.getElementById("today-sum-party").textContent  = fmtMin(sumParty);
   document.getElementById("today-sum-vacation").textContent = fmtMin(sumVacation);
+
+  // 円グラフの描画
+  renderPieChart('todayChart', {
+    '通常': sumNormal,
+    '時間外': sumOT,
+    '休憩': sumBreak,
+    '懇親会': sumParty,
+    '休暇中': sumVacation
+  });
 
   // 履歴リスト
   const list = document.getElementById('today-history-list');
@@ -769,6 +858,15 @@ function renderMonthlyPage() {
   document.getElementById('sum-vacation').textContent = fmtMin(totalVacation);
   document.getElementById('sum-break').textContent  = fmtMin(totalBreak);
   document.getElementById('sum-party').textContent  = fmtMin(totalParty);
+
+  // 円グラフの描画
+  renderPieChart('monthlyChart', {
+    '通常': totalNormal,
+    '時間外': totalOT,
+    '休憩': totalBreak,
+    '懇親会': totalParty,
+    '休暇中': totalVacation
+  });
 
   renderWTSummary(monthRecs, totalAll);
   renderMonthlyRecords(monthRecs);

@@ -8,9 +8,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="業務時間">
   <title>営業部 業務時間管理</title>
-  <link rel="stylesheet" href="style.css?v=1.12">
+  <link rel="stylesheet" href="style.css?v=1.13">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -134,6 +135,9 @@
     <div class="card-title">&#128197; 本日の集計</div>
     <div id="today-date-label" class="today-date-label"></div>
     <div class="summary-grid" id="today-summary">
+      <div style="grid-column: 1 / -1; margin-bottom: 10px;">
+        <canvas id="todayChart" style="max-height: 200px;"></canvas>
+      </div>
       <div class="summary-item">
         <div class="s-label">通常業務</div>
         <div class="s-value" id="today-sum-normal">0:00</div>
@@ -177,6 +181,9 @@
 
     <!-- 月次集計サマリー -->
     <div class="summary-grid" id="monthly-summary">
+      <div style="grid-column: 1 / -1; margin-bottom: 10px;">
+        <canvas id="monthlyChart" style="max-height: 200px;"></canvas>
+      </div>
       <div class="summary-item">
         <div class="s-label">総業務時間</div>
         <div class="s-value" id="sum-total">0:00</div>
@@ -483,6 +490,5 @@
 <!-- ===== トースト ===== -->
 <div id="toast"></div>
 
-<script src="app.js?v=1.13"></script>
-</body>
+  <script src="app.js?v=1.10"></script></body>
 </html>
