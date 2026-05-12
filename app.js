@@ -1,5 +1,5 @@
 /* ============================================================
-   営業部 業務時間管理 app.js  v1.16
+   営業部 業務時間管理 app.js  v1.17
    - localStorage ベース（サーバー不要・費用ゼロ）
    - PWA対応（オフライン動作）
    ============================================================ */
@@ -848,14 +848,9 @@ function renderTodayPage() {
   document.getElementById("today-sum-party").textContent  = fmtMin(sumParty);
   document.getElementById("today-sum-vacation").textContent = fmtMin(sumVacation);
 
-  // 横棒グラフ（プログレスバー）の描画
-  renderWTSummary('today-wt-summary', {
-    normal: sumNormal,
-    ot: sumOT,
-    break: sumBreak,
-    party: sumParty,
-    vacation: sumVacation
-  });
+  // 横棒グラフ（プログレスバー）の描画 - 業務区分（在庫商、直送商など）ベース
+  const totalAll = sumNormal + sumOT + sumParty + sumVacation;
+  renderTodayWTSummary(todayRecs, totalAll);
 
   // 履歴リスト
   const list = document.getElementById('today-history-list');
@@ -936,35 +931,37 @@ function renderMonthlyPage() {
   renderMonthlyRecords(monthRecs);
 }
 
-// 本日ページ用の横棒グラフ描画
-function renderWTSummary(containerId, data) {
-  const container = document.getElementById(containerId);
+// 本日ページ用の横棒グラフ描画（業務区分ベース）
+function renderTodayWTSummary(todayRecs, totalAll) {
+  const container = document.getElementById('today-wt-summary');
   if (!container) return;
-  
-  const total = data.normal + data.ot + data.party + data.vacation;
-  if (total === 0) {
+
+  if (totalAll === 0) {
     container.innerHTML = '<div class="text-sub text-sm text-center">業務記録なし</div>';
     return;
   }
 
-  const items = [
-    { label: '通常業務', min: data.normal, color: '#4fc3f7' },
-    { label: '時間外業務', min: data.ot, color: '#ef5350' },
-    { label: '懇親会対応', min: data.party, color: '#ffa726' },
-    { label: '休暇中業務', min: data.vacation, color: '#ab47bc' }
-  ].filter(i => i.min > 0).sort((a, b) => b.min - a.min);
+  const wtMap = {};
+  todayRecs.forEach(r => {
+    if (r.workType && r.workType !== BREAK_TYPE) {
+      if (!wtMap[r.workType]) wtMap[r.workType] = 0;
+      wtMap[r.workType] += (r.normalMin||0) + (r.otMin||0) + (r.partyMin||0) + (r.vacationMin||0);
+    }
+  });
 
-  container.innerHTML = items.map(item => {
-    const pct = Math.round(item.min / total * 100);
+  const entries = Object.entries(wtMap).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
+  
+  container.innerHTML = entries.map(([type, min]) => {
+    const pct = Math.round(min / totalAll * 100);
     return `<div class="wt-summary-item" style="margin-bottom: 8px;">
       <div style="flex: 1;">
-        <div style="font-size: 0.85rem; margin-bottom: 2px;">${item.label}</div>
+        <div style="font-size: 0.85rem; margin-bottom: 2px;">${type}</div>
         <div class="wt-bar-wrap" style="height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden;">
-          <div class="wt-bar" style="width:${pct}%; height: 100%; background:${item.color};"></div>
+          <div class="wt-bar" style="width:${pct}%; height: 100%; background: var(--primary);"></div>
         </div>
       </div>
       <div style="text-align:right; min-width:70px; margin-left: 10px;">
-        <div style="font-weight: bold; font-size: 0.9rem;">${fmtMin(item.min)}</div>
+        <div style="font-weight: bold; font-size: 0.9rem;">${fmtMin(min)}</div>
         <div style="font-size: 0.75rem; color: #6c757d;">${pct}%</div>
       </div>
     </div>`;
