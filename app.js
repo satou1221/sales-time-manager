@@ -1,5 +1,5 @@
 /* ============================================================
-   営業部 業務時間管理 app.js  v1.17
+   営業部 業務時間管理 app.js  v1.18
    - localStorage ベース（サーバー不要・費用ゼロ）
    - PWA対応（オフライン動作）
    ============================================================ */
@@ -1356,7 +1356,7 @@ function renderSettingsCalendar() {
     else if (ds && ds.status === 'paid') cls += ' is-paid';
     else if (ds && ds.status === 'hourly') {
       cls += ' is-hourly';
-      if (ds.startTime && ds.endTime) dayContent += `<br><small>${ds.startTime}-${ds.endTime}</small>`;
+      if (ds.startTime && ds.endTime) dayContent = `${d}<span class="cal-hourly-time">${ds.startTime}-${ds.endTime}</span>`;
     }
 
     html += `<div class="${cls}" onclick="toggleDayStatus('${dateStr}')">${dayContent}</div>`;

@@ -440,6 +440,7 @@ html, body {
   position: relative;
   background: var(--white);
   cursor: pointer;
+  overflow: hidden;
 }
 .cal-day.other-month {
   opacity: 0.3;
@@ -455,6 +456,22 @@ html, body {
 .cal-day.is-holiday { background: #ffcdd2 !important; border-color: #e53935; color: #b71c1c; }
 .cal-day.is-paid    { background: #c8e6c9 !important; border-color: #43a047; color: #1b5e20; }
 .cal-day.is-hourly  { background: #fff9c4 !important; border-color: #fbc02d; color: #f57f17; }
+
+/* 時間休の時刻表示（絶対配置でセルサイズに影響しない） */
+.cal-hourly-time {
+  position: absolute;
+  bottom: 1px;
+  left: 0;
+  right: 0;
+  font-size: 0.45rem;
+  line-height: 1;
+  text-align: center;
+  color: #f57f17;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
 
 /* 凡例 */
 .calendar-legend {
