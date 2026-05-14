@@ -204,10 +204,11 @@ html, body {
   padding-bottom: 2px;
 }
 #home-elapsed {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: #b8e0ef;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--white);
   letter-spacing: .04em;
+  text-shadow: 0 0 10px rgba(255,255,255,0.3);
 }
 
 /* ③ 状態バッジ */

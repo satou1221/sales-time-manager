@@ -1,5 +1,5 @@
 /* ============================================================
-   営業部 業務時間管理 app.js  v1.19
+   営業部 業務時間管理 app.js  v1.20
    - localStorage ベース（サーバー不要・費用ゼロ）
    - PWA対応（オフライン動作）
    ============================================================ */
@@ -33,6 +33,7 @@ let elapsedTimer     = null;
 let currentPage      = 'home';
 let viewMonth        = { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
 let settingsMonth    = { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
+let viewTodayDate    = toDateStr(new Date());
 let selectedWorkType = null;
 
 // ============================================================
@@ -824,8 +825,15 @@ function checkWorkSplit(now) {
 // ============================================================
 // 本日ページ
 // ============================================================
+function changeTodayDate(delta) {
+  const d = new Date(viewTodayDate + 'T00:00:00');
+  d.setDate(d.getDate() + delta);
+  viewTodayDate = toDateStr(d);
+  renderTodayPage();
+}
+
 function renderTodayPage() {
-  const today = toDateStr(new Date());
+  const today = viewTodayDate;
   const d     = new Date(today + 'T00:00:00');
   const dayNames = ['日','月','火','水','木','金','土'];
   document.getElementById('today-date-label').textContent =

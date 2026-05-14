@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="業務時間">
   <title>営業部 業務時間管理</title>
-  <link rel="stylesheet" href="style.css?v=1.19">
+  <link rel="stylesheet" href="style.css?v=1.20">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -133,7 +133,11 @@
   <!-- 本日集計 -->
   <div class="card">
     <div class="card-title">&#128197; 本日の集計</div>
-    <div id="today-date-label" class="today-date-label"></div>
+    <div class="month-ctrl">
+      <button onclick="changeTodayDate(-1)">◀</button>
+      <div id="today-date-label" class="today-date-label" style="margin-bottom:0;"></div>
+      <button onclick="changeTodayDate(1)">▶</button>
+    </div>
     <div class="summary-grid" id="today-summary">
       <!-- 本日の業務比率（横棒グラフ） -->
       <div id="today-wt-summary" style="grid-column: 1 / -1; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #e9ecef;">
@@ -487,5 +491,5 @@
 <!-- ===== トースト ===== -->
 <div id="toast"></div>
 
-  <script src="app.js?v=1.19"></script></body>
+  <script src="app.js?v=1.20"></script></body>
 </html>
