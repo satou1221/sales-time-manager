@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.31'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.32'; // アプリケーションのバージョン
 const PARTY_TYPE = '懇親会対応';
 const BREAK_TYPE = '休憩';
 
@@ -106,8 +106,8 @@ function forceReloadApp() {
 }
 
 function checkAppUpdate() {
-  const lastVersion = localStorage.getItem('stm_last_version');
-  if (lastVersion !== APP_VERSION) {
+  const currentStoredVersion = localStorage.getItem('stm_last_version');
+  if (currentStoredVersion !== APP_VERSION) {
     // 新しいバージョンが検出された場合のみポップアップを表示
     showUpdateNotes();
     localStorage.setItem('stm_last_version', APP_VERSION);
@@ -122,10 +122,14 @@ function showUpdateNotes() {
 }
 
 function closeUpdateNotesModal() {
-  const modal = document.getElementById('update-notes-modal');
+  const modal = document.getElementById("update-notes-modal");
   if (modal) {
-    modal.style.display = 'none';
+    modal.style.display = "none";
   }
+}
+
+function showUpdateNotesModalExplicitly() {
+  showUpdateNotes();
 }
 
 /**
