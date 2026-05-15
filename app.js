@@ -9,6 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
+const APP_VERSION = 'v1.29'; // アプリケーションのバージョン
 const PARTY_TYPE = '懇親会対応';
 const BREAK_TYPE = '休憩';
 
@@ -59,7 +60,41 @@ function registerSW() {
           Notification.requestPermission();
         }, 3000);
       }
+
+      reg.onupdatefound = () => {
+        const installingWorker = reg.installing;
+        if (installingWorker) {
+          installingWorker.onstatechange = () => {
+            if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // 新しいService Workerがインストールされ、かつ既存のService Workerが制御している場合
+              // (つまり、新しいバージョンが利用可能になった場合)
+              showUpdatePrompt();
+            }
+          };
+        }
+      };
     }).catch(() => {});
+  }
+}
+
+function showUpdatePrompt() {
+  if (confirm('新しいバージョンが利用可能です。更新しますか？')) {
+    // 新しいService Workerに制御を移し、ページをリロード
+    window.location.reload(true);
+  }
+}
+
+function forceReloadApp() {
+  if (confirm('アプリを強制的に更新します。よろしいですか？')) {
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          return caches.delete(cacheName);
+        })
+      );
+    }).then(() => {
+      window.location.reload(true);
+    });
   }
 }
 
@@ -154,8 +189,8 @@ function initApp() {
 function updateVersionDisplay() {
   const verEl = document.getElementById('display-version');
   const dateEl = document.getElementById('display-last-update');
-  if (verEl) verEl.textContent = 'v1.28';
-  if (dateEl) dateEl.textContent = '2026/05/15 18:10';
+  if (verEl) verEl.textContent = APP_VERSION;
+  if (dateEl) dateEl.textContent = new Date().toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '/');
 }
 
 function updateHeaderUser() {

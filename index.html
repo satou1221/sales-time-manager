@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="業務時間">
   <title>営業部 業務時間管理</title>
-  <link rel="stylesheet" href="style.css?v=1.28">
+  <link rel="stylesheet" href="style.css?v=1.29">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -339,6 +339,7 @@
         バージョン: <span id="display-version">v1.25</span><br>
         最終更新: <span id="display-last-update">2026/05/15 13:45</span>
       </div>
+        <button class="btn btn-danger" onclick="forceReloadApp()" style="margin-top: 15px;">アプリを強制更新する</button>
     </div>
   </div>
 </div><!-- /page-settings -->
@@ -502,5 +503,5 @@
 <!-- ===== トースト ===== -->
 <div id="toast"></div>
 
-  <script src="app.js?v=1.28"></script></body>
+  <script src="app.js?v=1.29"></script></body>
 </html>
