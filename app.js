@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.32'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.34'; // アプリケーションのバージョン
 const PARTY_TYPE = '懇親会対応';
 const BREAK_TYPE = '休憩';
 
@@ -217,7 +217,7 @@ function initApp() {
   renderSettingsCalendar();
   loadSettingsForm();
   updateVersionDisplay();    // バージョン情報表示
-  checkAppUpdate();          // 更新内容の表示チェック
+  setTimeout(checkAppUpdate, 2000); // 更新内容の表示チェック (2秒遅延)
   showPage('home');
 }
 

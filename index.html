@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="業務時間">
   <title>営業部 業務時間管理</title>
-  <link rel="stylesheet" href="style.css?v=1.32">
+  <link rel="stylesheet" href="style.css?v=1.34">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -336,8 +336,8 @@
     <!-- アプリ情報 -->
     <div style="margin-top: 16px; padding: 16px; text-align: center; border-top: 1px solid var(--border); opacity: 0.6;">
       <div id="app-version-info" style="font-size: 0.75rem; color: var(--text-sub); line-height: 1.6;">
-        バージョン: <span id="display-version">v1.32</span><br>
-        最終更新: <span id="display-last-update">2026/05/16 06:15</span>
+        バージョン: <span id="display-version">v1.34</span><br>
+        最終更新: <span id="display-last-update">2026/05/16 06:30</span>
       </div>
         <button class="btn btn-danger" onclick="forceReloadApp()" style="margin-top: 15px;">アプリを強制更新する</button>
         <button class="btn btn-primary" onclick="showUpdateNotesModalExplicitly()" style="margin-top: 10px;">最新の更新内容を表示</button>
@@ -348,14 +348,14 @@
 <!-- ===== 更新内容モーダル ===== -->
 <div class="modal-overlay" id="update-notes-modal">
   <div class="modal-box">
-    <div class="modal-title">&#128220; アプリ更新情報 (v1.32)</div>
+    <div class="modal-title">&#128220; アプリ更新情報 (v1.34)</div>
     <div class="modal-content">
-      <p>いつもご利用ありがとうございます！最新バージョン v1.32 がリリースされました。</p>
+      <p>いつもご利用ありがとうございます！最新バージョン v1.34 がリリースされました。</p>
       <h3>主な更新内容</h3>
       <ul>
-        <li><strong>更新時間の修正</strong>: 設定画面の最終更新日時を現在の時刻に合わせて修正しました。</li>
-        <li><strong>更新内容ポップアップの確実化</strong>: アプリ起動時のバージョンチェックロジックをさらに堅牢にし、更新内容のポップアップがより確実に表示されるように調整しました。</li>
-        <li><strong>「更新内容を表示」ボタンの追加</strong>: 設定画面に「最新の更新内容を表示」ボタンを追加しました。これにより、自動ポップアップが出なかった場合でも、いつでも内容を確認できるようになりました。</li>
+        <li><strong>ポップアップ表示タイミングの再調整</strong>: アプリ起動後、画面が完全に表示されてからさらに遅らせて（2秒後）ポップアップを出すように処理を調整しました。これにより、表示の失敗をさらに防ぎます。</li>
+        <li><strong>更新時間の更新</strong>: 設定画面の最終更新日時を現在の時刻に合わせて修正しました。</li>
+        <li><strong>手動ボタンの動作確認</strong>: 設定画面の「最新の更新内容を表示」ボタンで確実に更新内容が表示されることを再確認しました。</li>
       </ul>
       <p>お手数ですが、最新の機能をご利用いただくために、アプリを再起動していただくか、設定画面の「アプリを強制更新する」ボタンをご利用ください。</p>
     </div>
@@ -524,5 +524,5 @@
 <!-- ===== トースト ===== -->
 <div id="toast"></div>
 
-  <script src="app.js?v=1.32"></script></body>
+  <script src="app.js?v=1.34"></script></body>
 </html>
