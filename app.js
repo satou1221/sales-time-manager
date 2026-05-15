@@ -154,8 +154,8 @@ function initApp() {
 function updateVersionDisplay() {
   const verEl = document.getElementById('display-version');
   const dateEl = document.getElementById('display-last-update');
-  if (verEl) verEl.textContent = 'v1.27';
-  if (dateEl) dateEl.textContent = '2026/05/15 14:00';
+  if (verEl) verEl.textContent = 'v1.28';
+  if (dateEl) dateEl.textContent = '2026/05/15 18:10';
 }
 
 function updateHeaderUser() {
@@ -550,8 +550,9 @@ function checkWorkSplit(now) {
   const startDt = new Date(activeSession.startTime);
   const startMin = startDt.getHours() * 60 + startDt.getMinutes();
 
-  // 1. 始業時刻を跨いだ瞬間の自動分割（時間外 → 通常業務）
-  if (startMin < startMinTime && nowMin === startMinTime) {
+  // 1. 始業時刻を跨いだ自動分割（時間外 → 通常業務）
+  // 「開始が始業前」かつ「現在が始業後」の場合
+  if (startMin < startMinTime && nowMin >= startMinTime) {
     const workType = activeSession.workType;
     const memo     = activeSession.memo;
     
@@ -567,7 +568,7 @@ function checkWorkSplit(now) {
       workType:  workType,
       type:      'work',
       startTime: splitTime.toISOString(),
-      memo:      (memo ? memo + ' ' : '') + '（始業時刻により自動分割）'
+      memo:      (memo ? memo + ' ' : '') + '（始業跨ぎ分割）'
     };
     saveActive();
     updateHomeStatus();
@@ -575,8 +576,9 @@ function checkWorkSplit(now) {
     return;
   }
 
-  // 2. 終業時刻を跨いだ瞬間の自動分割（通常業務 → 時間外）
-  if (startMin < endMinTime && nowMin === endMinTime) {
+  // 2. 終業時刻を跨いだ自動分割（通常業務 → 時間外）
+  // 「開始が終業前」かつ「現在が終業後」の場合
+  if (startMin < endMinTime && nowMin >= endMinTime) {
     const workType = activeSession.workType;
     const memo     = activeSession.memo;
     
@@ -592,7 +594,7 @@ function checkWorkSplit(now) {
       workType:  workType,
       type:      'work',
       startTime: splitTime.toISOString(),
-      memo:      (memo ? memo + ' ' : '') + '（終業時刻により自動分割）'
+      memo:      (memo ? memo + ' ' : '') + '（終業跨ぎ分割）'
     };
     saveActive();
     updateHomeStatus();
