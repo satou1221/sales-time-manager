@@ -138,7 +138,11 @@
       <div id="today-date-label" class="today-date-label" style="margin-bottom:0;"></div>
       <button onclick="changeTodayDate(1)">▶</button>
     </div>
-    <div class="summary-grid" id="today-summary">
+    <div id="daily-total-time-container" style="text-align: center; margin-bottom: 15px; padding: 10px; background: var(--bg-sub); border-radius: 8px; border: 1px solid var(--border);">
+          <span style="font-size: 0.85rem; color: var(--text-sub);">本日の総労働時間</span><br>
+          <span id="today-total-work-time" style="font-size: 1.4rem; font-weight: bold; color: var(--primary);">0時間0分</span>
+        </div>
+        <div class="summary-grid" id="today-summary">
       <!-- 本日の業務比率（横棒グラフ） -->
       <div id="today-wt-summary" style="grid-column: 1 / -1; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #e9ecef;">
       </div>
