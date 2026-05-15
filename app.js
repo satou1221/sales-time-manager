@@ -154,8 +154,8 @@ function initApp() {
 function updateVersionDisplay() {
   const verEl = document.getElementById('display-version');
   const dateEl = document.getElementById('display-last-update');
-  if (verEl) verEl.textContent = 'v1.26';
-  if (dateEl) dateEl.textContent = '2026/05/15 13:55';
+  if (verEl) verEl.textContent = 'v1.27';
+  if (dateEl) dateEl.textContent = '2026/05/15 14:00';
 }
 
 function updateHeaderUser() {
@@ -381,7 +381,7 @@ function endSessionAt(endTime) {
   saveActive();
 }
 
-function stopWork() {
+function endWork() {
   if (!activeSession) return;
   const type = activeSession.workType;
   endCurrentSession();
