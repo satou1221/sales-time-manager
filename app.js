@@ -1,5 +1,5 @@
 /* ============================================================
-   営業部 業務時間管理 app.js  v1.21
+   営業部 業務時間管理 app.js  v1.22
    - localStorage ベース（サーバー不要・費用ゼロ）
    - PWA対応（オフライン動作）
    ============================================================ */
@@ -147,7 +147,15 @@ function initApp() {
   startWarnTimer();          // 長時間同一業務・待機中警告タイマー起動
   renderSettingsCalendar();
   loadSettingsForm();
+  updateVersionDisplay();    // バージョン情報表示
   showPage('home');
+}
+
+function updateVersionDisplay() {
+  const verEl = document.getElementById('display-version');
+  const dateEl = document.getElementById('display-last-update');
+  if (verEl) verEl.textContent = 'v1.22';
+  if (dateEl) dateEl.textContent = '2026/05/15 15:30';
 }
 
 function updateHeaderUser() {

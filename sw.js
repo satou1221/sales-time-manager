@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sales-time-v29';
+const CACHE_NAME = 'sales-time-v30';
 const ASSETS = [
   './index.html',
   './app.js',
