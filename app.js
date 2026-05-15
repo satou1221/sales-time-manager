@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.29'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.30'; // アプリケーションのバージョン
 const PARTY_TYPE = '懇親会対応';
 const BREAK_TYPE = '休憩';
 
@@ -86,6 +86,13 @@ function showUpdatePrompt() {
 
 function forceReloadApp() {
   if (confirm('アプリを強制的に更新します。よろしいですか？')) {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
@@ -93,8 +100,30 @@ function forceReloadApp() {
         })
       );
     }).then(() => {
-      window.location.reload(true);
+      window.location.href = window.location.href.split('?')[0] + '?v=' + new Date().getTime();
     });
+  }
+}
+
+function checkAppUpdate() {
+  const lastVersion = localStorage.getItem('stm_last_version');
+  if (lastVersion !== APP_VERSION) {
+    showUpdateNotes();
+    localStorage.setItem('stm_last_version', APP_VERSION);
+  }
+}
+
+function showUpdateNotes() {
+  const modal = document.getElementById('update-notes-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+function closeUpdateNotesModal() {
+  const modal = document.getElementById('update-notes-modal');
+  if (modal) {
+    modal.style.display = 'none';
   }
 }
 
@@ -183,6 +212,7 @@ function initApp() {
   renderSettingsCalendar();
   loadSettingsForm();
   updateVersionDisplay();    // バージョン情報表示
+  checkAppUpdate();          // 更新内容の表示チェック
   showPage('home');
 }
 

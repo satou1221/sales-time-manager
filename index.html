@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="業務時間">
   <title>営業部 業務時間管理</title>
-  <link rel="stylesheet" href="style.css?v=1.29">
+  <link rel="stylesheet" href="style.css?v=1.30">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -336,13 +336,33 @@
     <!-- アプリ情報 -->
     <div style="margin-top: 16px; padding: 16px; text-align: center; border-top: 1px solid var(--border); opacity: 0.6;">
       <div id="app-version-info" style="font-size: 0.75rem; color: var(--text-sub); line-height: 1.6;">
-        バージョン: <span id="display-version">v1.25</span><br>
-        最終更新: <span id="display-last-update">2026/05/15 13:45</span>
+        バージョン: <span id="display-version">v1.30</span><br>
+        最終更新: <span id="display-last-update">2026/05/16 10:00</span>
       </div>
         <button class="btn btn-danger" onclick="forceReloadApp()" style="margin-top: 15px;">アプリを強制更新する</button>
     </div>
   </div>
 </div><!-- /page-settings -->
+
+<!-- ===== 更新内容モーダル ===== -->
+<div class="modal-overlay" id="update-notes-modal">
+  <div class="modal-box">
+    <div class="modal-title">&#128220; アプリ更新情報 (v1.30)</div>
+    <div class="modal-content">
+      <p>いつもご利用ありがとうございます！最新バージョン v1.30 がリリースされました。</p>
+      <h3>主な更新内容</h3>
+      <ul>
+        <li><strong>強制更新機能の強化</strong>: iPhone PWA環境でのキャッシュ問題を根本的に解決するため、強制更新ボタンのロジックを強化しました。Service Workerの登録解除とキャッシュの完全削除を行うことで、より確実に最新版が反映されるようになりました。</li>
+        <li><strong>更新内容の表示</strong>: アプリ起動時に新しいバージョンを検知した場合、この更新内容が表示されるようになりました。</li>
+        <li><strong>バージョン表示の修正</strong>: 設定画面のバージョン表示が、JavaScriptのキャッシュに影響されず、常に最新のバージョンを表示するように修正しました。</li>
+      </ul>
+      <p>お手数ですが、最新の機能をご利用いただくために、アプリを再起動していただくか、設定画面の「アプリを強制更新する」ボタンをご利用ください。</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeUpdateNotesModal()">閉じる</button>
+    </div>
+  </div>
+</div>
 
 <!-- ===== ナビゲーション（4タブ） ===== -->
 <nav id="nav-bar">
@@ -503,5 +523,5 @@
 <!-- ===== トースト ===== -->
 <div id="toast"></div>
 
-  <script src="app.js?v=1.29"></script></body>
+  <script src="app.js?v=1.30"></script></body>
 </html>
