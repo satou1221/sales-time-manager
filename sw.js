@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sales-time-v28';
+const CACHE_NAME = 'sales-time-v29';
 const ASSETS = [
   './index.html',
   './app.js',
@@ -20,6 +20,19 @@ self.addEventListener('activate', (e) => {
     )
   );
   self.clients.claim();
+});
+
+// 通知クリック時の処理
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(
+    clients.matchAll({ type: 'window' }).then(clientList => {
+      for (const client of clientList) {
+        if (client.url.includes('index.html') && 'focus' in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow('./index.html');
+    })
+  );
 });
 
 // ネットワーク優先（失敗時のみキャッシュ）

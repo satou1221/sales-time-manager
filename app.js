@@ -1,5 +1,5 @@
 /* ============================================================
-   営業部 業務時間管理 app.js  v1.20
+   営業部 業務時間管理 app.js  v1.21
    - localStorage ベース（サーバー不要・費用ゼロ）
    - PWA対応（オフライン動作）
    ============================================================ */
@@ -51,7 +51,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function registerSW() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      // 通知の許可を求める
+      if ('Notification' in window && Notification.permission === 'default') {
+        // ユーザーに負担をかけないよう、アプリ初期化後に少し遅らせて表示
+        setTimeout(() => {
+          Notification.requestPermission();
+        }, 3000);
+      }
+    }).catch(() => {});
+  }
+}
+
+/**
+ * スマホの通知欄にメッセージを表示する（ローカル通知）
+ * @param {string} title タイトル
+ * @param {string} body 本文
+ */
+function sendNotification(title, body) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  
+  if (navigator.serviceWorker.controller) {
+    // Service Worker経由で通知（バックグラウンド対応）
+    navigator.serviceWorker.ready.then(reg => {
+      reg.showNotification(title, {
+        body: body,
+        icon: './icons/icon-192.png',
+        badge: './icons/icon-192.png',
+        vibrate: [200, 100, 200],
+        tag: 'stm-alert', // 同じタグの通知は上書き
+        renotify: true
+      });
+    });
+  } else {
+    // 通常の通知（フォアグラウンド用）
+    new Notification(title, { body: body, icon: './icons/icon-192.png' });
   }
 }
 
@@ -645,10 +679,14 @@ function checkStaleSession() {
 // 業務押し忘れ防止：長時間同一業務・待機中警告タイマー
 // ============================================================
 const WARN_SAME_WORK_MIN  = 90;  // 同一業務区分でこの分数超過で警告
+const WARN_PARTY_MIN      = 180; // 懇親会でこの分数超過で警告
 const WARN_IDLE_MIN       = 10;  // 待機中のままこの分数超過で警告
 const WARN_BREAK_MIN      = 10;  // 休憩時間内に休憩未開始で警告
+const WARN_BREAK_END_MIN  = 1;   // 休憩終了時刻を跨いだ際に警告
+const WARN_NIGHT_HOUR     = 22;  // 深夜22時に警告
 let warnTimer = null;
 let idleStartTime = null;  // 待機開始時刻
+let lastNotifiedTag = "";  // 最後に通知したタグ（重複通知防止）
 
 function startWarnTimer() {
   if (warnTimer) clearInterval(warnTimer);
@@ -663,70 +701,102 @@ function checkWarnConditions() {
   if (!banner || !text) return;
 
   const now = new Date();
+  const nowH = now.getHours();
+  const nowM = now.getMinutes();
+  const nowMinTotal = nowH * 60 + nowM;
+  const today = toDateStr(now);
+  const isHol = isHolidayOrSpecial(today);
 
-  // 待機中警告：待機開始からWARN_IDLE_MIN分超過
+  let alertMsg = "";
+  let alertTag = "";
+
+  // 1. 深夜の終了忘れチェック (22:00)
+  if (activeSession && nowH === WARN_NIGHT_HOUR && nowM === 0) {
+    alertMsg = "深夜22時です。業務終了の押し忘れはありませんか？";
+    alertTag = "night-check";
+  }
+
+  // 待機中のチェック
   if (!activeSession) {
     if (!idleStartTime) idleStartTime = now;
     const idleMin = Math.floor((now - idleStartTime) / 60000);
-    const today   = toDateStr(now);
-    const isHol   = isHolidayOrSpecial(today);
 
     if (!isHol && currentUser) {
-      const nowMin = now.getHours() * 60 + now.getMinutes();
-      
-      // 1. 休憩時間内のチェック
-      const [bsH, bsM] = (currentUser.breakStart || '12:00').split(':').map(Number);
-      const [beH, beM] = (currentUser.breakEnd   || '13:00').split(':').map(Number);
-      const bStartMin = bsH * 60 + bsM;
-      const bEndMin   = beH * 60 + beM;
-      
-      if (nowMin >= bStartMin && nowMin < bEndMin) {
-        const breakIdleMin = Math.floor((now - new Date(today + 'T' + (currentUser.breakStart || '12:00') + ':00')) / 60000);
-        if (breakIdleMin >= WARN_BREAK_MIN) {
-          banner.classList.remove('hidden');
-          text.textContent = `休憩時間ですが休憩が開始されていません（${breakIdleMin}分経過）`;
-          return;
-        }
-      }
-
-      // 2. 就業時間内のチェック
       const [sh, sm] = (currentUser.workStart || '08:30').split(':').map(Number);
       const [eh, em] = (currentUser.workEnd   || '17:30').split(':').map(Number);
+      const [bsH, bsM] = (currentUser.breakStart || '12:00').split(':').map(Number);
+      const [beH, beM] = (currentUser.breakEnd   || '13:00').split(':').map(Number);
       const startMin = sh * 60 + sm;
       const endMin   = eh * 60 + em;
-      
-      if (nowMin >= startMin && nowMin < endMin) {
-        // 休憩時間は除く
-        if (nowMin < bStartMin || nowMin >= bEndMin) {
-          if (idleMin >= WARN_IDLE_MIN) {
-            banner.classList.remove('hidden');
-            text.textContent = `業務未開始のまま ${idleMin}分経過―業務区分をタップしてください`;
-            return;
-          }
+      const bStartMin = bsH * 60 + bsM;
+      const bEndMin   = beH * 60 + beM;
+
+      // ① 始業時に業務未開始
+      if (nowMinTotal === startMin) {
+        alertMsg = "始業時間です。業務を開始してください。";
+        alertTag = "work-start";
+      }
+      // ② 休憩開始10分経過
+      else if (nowMinTotal === bStartMin + 10) {
+        alertMsg = "休憩時間から10分経過しました。休憩ボタンを押してください。";
+        alertTag = "break-start";
+      }
+      // ⑤ 終業10分経過
+      else if (nowMinTotal === endMin + 10) {
+        alertMsg = "終業時間から10分経過しました。業務終了ボタンを押してください。";
+        alertTag = "work-end";
+      }
+      // 通常のバナー警告（就業時間内）
+      else if (nowMinTotal >= startMin && nowMinTotal < endMin && (nowMinTotal < bStartMin || nowMinTotal >= bEndMin)) {
+        if (idleMin >= WARN_IDLE_MIN) {
+          alertMsg = `業務未開始のまま ${idleMin}分経過―業務区分をタップしてください`;
+          alertTag = "idle-banner";
         }
       }
     }
-    banner.classList.add('hidden');
-    return;
+  } 
+  // 業務中・休憩中のチェック
+  else {
+    idleStartTime = null;
+    const start = new Date(activeSession.startTime);
+    const elapsed = Math.floor((now - start) / 60000);
+
+    if (activeSession.type === BREAK_TYPE) {
+      if (currentUser) {
+        const [beH, beM] = (currentUser.breakEnd || '13:00').split(':').map(Number);
+        const bEndMin = beH * 60 + beM;
+        // ③ 休憩終了時刻を超過
+        if (nowMinTotal === bEndMin) {
+          alertMsg = "休憩終了時間です。業務を再開してください。";
+          alertTag = "break-end";
+        }
+      }
+    } else {
+      // ④ 同一業務90分経過
+      if (elapsed >= WARN_SAME_WORK_MIN && activeSession.workType !== PARTY_TYPE) {
+        alertMsg = `「${activeSession.workType}」を開始して ${elapsed}分経過しました。`;
+        alertTag = "same-work";
+      }
+      // ⑦ 懇親会180分経過
+      else if (elapsed >= WARN_PARTY_MIN && activeSession.workType === PARTY_TYPE) {
+        alertMsg = `懇親会開始から ${elapsed}分経過しました。終了忘れはありませんか？`;
+        alertTag = "party-long";
+      }
+    }
   }
 
-  // 業務中の場合：待機タイマーをリセット
-  idleStartTime = null;
-
-  // 休憩中は警告不要
-  if (activeSession.type === BREAK_TYPE) {
-    banner.classList.add('hidden');
-    return;
-  }
-
-  // 長時間同一業務区分警告
-  const start   = new Date(activeSession.startTime);
-  const elapsed = Math.floor((now - start) / 60000);
-  if (elapsed >= WARN_SAME_WORK_MIN) {
+  // 通知とバナーの表示
+  if (alertMsg) {
     banner.classList.remove('hidden');
-    text.textContent = `「${activeSession.workType}」を ${elapsed}分継続中―業務区分の切り替えを確認してください`;
+    text.textContent = alertMsg;
+    // 1分間に何度も通知が飛ばないよう、タグが変わった時だけ通知
+    if (alertTag !== lastNotifiedTag) {
+      sendNotification("業務時間管理アラート", alertMsg);
+      lastNotifiedTag = alertTag;
+    }
   } else {
     banner.classList.add('hidden');
+    lastNotifiedTag = "";
   }
 
   // 始業・終業時刻の自動分割チェック
