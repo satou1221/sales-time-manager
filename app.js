@@ -105,14 +105,7 @@ function forceReloadApp() {
   }
 }
 
-function checkAppUpdate() {
-  const currentStoredVersion = localStorage.getItem('stm_last_version');
-  if (currentStoredVersion !== APP_VERSION) {
-    // 新しいバージョンが検出された場合のみポップアップを表示
-    showUpdateNotes();
-    localStorage.setItem('stm_last_version', APP_VERSION);
-  }
-}
+
 
 function showUpdateNotes() {
   const modal = document.getElementById('update-notes-modal');
@@ -217,7 +210,7 @@ function initApp() {
   renderSettingsCalendar();
   loadSettingsForm();
   updateVersionDisplay();    // バージョン情報表示
-  setTimeout(checkAppUpdate, 2000); // 更新内容の表示チェック (2秒遅延)
+
   showPage('home');
 }
 
