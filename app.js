@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.34'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.36'; // アプリケーションのバージョン
 const PARTY_TYPE = '懇親会対応';
 const BREAK_TYPE = '休憩';
 
@@ -61,26 +61,8 @@ function registerSW() {
         }, 3000);
       }
 
-      reg.onupdatefound = () => {
-        const installingWorker = reg.installing;
-        if (installingWorker) {
-          installingWorker.onstatechange = () => {
-            if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // 新しいService Workerがインストールされ、かつ既存のService Workerが制御している場合
-              // (つまり、新しいバージョンが利用可能になった場合)
-              showUpdatePrompt();
-            }
-          };
-        }
-      };
+      // 自動更新プロンプトは廃止
     }).catch(() => {});
-  }
-}
-
-function showUpdatePrompt() {
-  if (confirm('新しいバージョンが利用可能です。更新しますか？')) {
-    // 新しいService Workerに制御を移し、ページをリロード
-    window.location.reload(true);
   }
 }
 
@@ -123,6 +105,102 @@ function closeUpdateNotesModal() {
 
 function showUpdateNotesModalExplicitly() {
   showUpdateNotes();
+}
+
+// ============================================================
+// 記録編集モーダル
+// ============================================================
+function openNewRecordModal() {
+  selectedWorkType = null;
+  document.getElementById('record-modal-title').textContent = '新規業務記録';
+  document.getElementById('record-work-type').value = '';
+  document.getElementById('record-start-time').value = fmtTime(new Date());
+  document.getElementById('record-end-time').value = '';
+  document.getElementById('record-memo').value = '';
+  document.getElementById('delete-record-btn').style.display = 'none';
+  document.getElementById('record-modal').classList.add('open');
+}
+
+function openEditModal(id) {
+  const rec = records.find(r => r.id === id);
+  if (!rec) return;
+
+  selectedWorkType = rec.id; // 編集対象のIDを保持
+  document.getElementById('record-modal-title').textContent = '業務記録編集';
+  document.getElementById('record-work-type').value = rec.workType;
+  document.getElementById('record-start-time').value = fmtTime(new Date(rec.startTime));
+  document.getElementById('record-end-time').value = rec.endTime ? fmtTime(new Date(rec.endTime)) : '';
+  document.getElementById('record-memo').value = rec.memo;
+  document.getElementById('delete-record-btn').style.display = 'block';
+  document.getElementById('record-modal').classList.add('open');
+}
+
+function closeRecordModal() {
+  document.getElementById('record-modal').classList.remove('open');
+  selectedWorkType = null;
+}
+
+function saveRecordModal() {
+  const workType = document.getElementById('record-work-type').value;
+  const startTime = document.getElementById('record-start-time').value;
+  const endTime = document.getElementById('record-end-time').value;
+  const memo = document.getElementById('record-memo').value;
+
+  if (!workType) { showToast('業務区分を選択してください'); return; }
+  if (!startTime) { showToast('開始時刻を入力してください'); return; }
+
+  const startDt = new Date(`${viewTodayDate}T${startTime}:00`);
+  let endDt = null;
+  if (endTime) {
+    endDt = new Date(`${viewTodayDate}T${endTime}:00`);
+    if (endDt <= startDt) { showToast('終了時刻は開始時刻より後にしてください'); return; }
+  } else if (selectedWorkType === null) {
+    // 新規作成で終了時刻がない場合は、現在時刻を仮設定
+    endDt = new Date();
+  }
+
+  let rec = {};
+  if (selectedWorkType) {
+    // 既存レコードの編集
+    rec = records.find(r => r.id === selectedWorkType);
+    if (!rec) return;
+    rec.workType = workType;
+    rec.startTime = startDt.toISOString();
+    rec.endTime = endDt ? endDt.toISOString() : null;
+    rec.memo = memo;
+    rec.modified = true; // 修正フラグ
+  } else {
+    // 新規レコードの追加
+    rec = {
+      id: genId(),
+      workType: workType,
+      type: 'work',
+      startTime: startDt.toISOString(),
+      endTime: endDt ? endDt.toISOString() : null,
+      date: viewTodayDate,
+      memo: memo,
+      modified: true
+    };
+    records.push(rec);
+  }
+
+  // 時間計算を再実行
+  calculateRecordMinutes(rec);
+  saveRecords();
+  closeRecordModal();
+  renderTodayPage();
+  showToast('記録を保存しました');
+}
+
+function deleteRecord() {
+  if (!selectedWorkType) return;
+  if (!confirm('この記録を削除しますか？')) return;
+
+  records = records.filter(r => r.id !== selectedWorkType);
+  saveRecords();
+  closeRecordModal();
+  renderTodayPage();
+  showToast('記録を削除しました');
 }
 
 /**
