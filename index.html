@@ -298,16 +298,34 @@
           <div class="legend-item"><span class="l-box l-hourly"></span>時間休</div>
         </div>
 
-        <div class="settings-section" style="margin-top: 20px;">
-          <h3>時間休設定</h3>
-          <div class="form-group">
-            <label for="hourly-date">日付</label>
-            <input type="date" id="hourly-date" class="form-input">
-          </div>
-          <div class="form-group">
-            <label for="hourly-start-time">開始時間</label>
-            <input type="time" id="hourly-start-time" class="form-input">
-          </div>
+    <!-- 祝日・休日設定 -->
+    <div class="card">
+      <div class="card-title">🗓️ 祝日・休日設定</div>
+      <div id="settings-month-selector" class="month-ctrl">
+        <button onclick="changeSettingsMonth(-1)">◀</button>
+        <div id="settings-month-label"></div>
+        <button onclick="changeSettingsMonth(1)">▶</button>
+      </div>
+      <div id="settings-calendar-grid" class="calendar-grid">
+        <!-- JSで生成 -->
+      </div>
+
+      <div class="calendar-legend">
+        <div class="legend-item"><span class="l-box l-holiday"></span>祝日</div>
+        <div class="legend-item"><span class="l-box l-paid"></span>有給</div>
+        <div class="legend-item"><span class="l-box l-hourly"></span>時間休</div>
+      </div>
+
+      <div class="settings-section" style="margin-top: 20px;">
+        <h3>時間休設定</h3>
+        <div class="form-group">
+          <label for="hourly-date">日付</label>
+          <input type="date" id="hourly-date" class="form-input">
+        </div>
+        <div class="form-group">
+          <label for="hourly-start-time">開始時間</label>
+          <input type="time" id="hourly-start-time" class="form-input">
+        </div>
           <div class="form-group">
             <label for="hourly-end-time">終了時間</label>
             <input type="time" id="hourly-end-time" class="form-input">
@@ -315,33 +333,52 @@
           <button class="btn btn-primary" onclick="saveHourlyLeave()">時間休を保存</button>
           <button class="btn btn-secondary" onclick="clearHourlyLeave()" style="margin-left: 8px;">時間休をクリア</button>
         </div>
-  </div>
-
-  <!-- アプリ導入ガイド -->
-  <div class="card">
-    <div class="card-title">&#128241; アプリ化ガイド</div>
-    <p class="text-sub text-xs" style="margin-bottom:12px;">この管理画面をアイコンでホーム画面に追加し、アプリのように使用できます。</p>
-    <button class="btn btn-primary full-w" onclick="showInstallGuide()">&#128241; アプリ化方法を表示</button>
-  </div>
-
-  <!-- データ管理 -->
-  <div class="card">
-    <div class="card-title">&#128190; データ管理</div>
-    <button class="btn btn-gray full-w" onclick="exportAllData()" style="margin-bottom:8px;">全データをJSONでバックアップ</button>
-    <button class="btn" style="background:#e53935;color:#fff;width:100%;" onclick="clearAllData()">&#9888; 全データを削除（初期化）</button>
-  </div>
-
-  <div style="text-align:center;color:var(--text-sub);font-size:.7rem;padding:16px 0 80px;">
-    データはこの端末のみに保存されます
-    <!-- アプリ情報 -->
-    <div style="margin-top: 16px; padding: 16px; text-align: center; border-top: 1px solid var(--border); opacity: 0.6;">
-      <div id="app-version-info" style="font-size: 0.75rem; color: var(--text-sub); line-height: 1.6;">
-          バージョン: <span id="display-version">v1.36</span><br>
-          最終更新: <span id="display-last-update">2026/05/19 07:15</span>
-      </div>
-        <button class="btn btn-danger" onclick="forceReloadApp()" style="margin-top: 15px;">アプリを強制更新する</button>
-        <button class="btn btn-primary" onclick="showUpdateNotesModalExplicitly()" style="margin-top: 10px;">最新の更新内容を表示</button>
     </div>
+
+    <!-- 祝日・休日設定 -->
+    <div class="card">
+      <div class="card-title">🗓️ 祝日・休日設定</div>
+      <div id="settings-month-selector" class="month-ctrl">
+        <button onclick="changeSettingsMonth(-1)">◀</button>
+        <div id="settings-month-label"></div>
+        <button onclick="changeSettingsMonth(1)">▶</button>
+      </div>
+      <div id="settings-calendar-grid" class="calendar-grid">
+        <!-- JSで生成 -->
+      </div>
+
+      <div class="calendar-legend">
+        <div class="legend-item"><span class="l-box l-holiday"></span>祝日</div>
+        <div class="legend-item"><span class="l-box l-paid"></span>有給</div>
+        <div class="legend-item"><span class="l-box l-hourly"></span>時間休</div>
+      </div>
+    </div>
+
+    <!-- アプリ導入ガイド -->
+    <div class="card">
+      <div class="card-title">&#128241; アプリ化ガイド</div>
+      <p class="text-sub text-xs" style="margin-bottom:12px;">この管理画面をアイコンでホーム画面に追加し、アプリのように使用できます。</p>
+      <button class="btn btn-primary full-w" onclick="showInstallGuide()">&#128241; アプリ化方法を表示</button>
+    </div>
+
+    <!-- データ管理 -->
+    <div class="card">
+      <div class="card-title">&#128190; データ管理</div>
+      <button class="btn btn-gray full-w" onclick="exportAllData()" style="margin-bottom:8px;">全データをJSONでバックアップ</button>
+      <button class="btn" style="background:#e53935;color:#fff;width:100%;" onclick="clearAllData()">&#9888; 全データを削除（初期化）</button>
+    </div>
+
+    <div style="text-align:center;color:var(--text-sub);font-size:.7rem;padding:16px 0 80px;">
+      データはこの端末のみに保存されます
+      <!-- アプリ情報 -->
+      <div style="margin-top: 16px; padding: 16px; text-align: center; border-top: 1px solid var(--border); opacity: 0.6;">
+        <div id="app-version-info" style="font-size: 0.75rem; color: var(--text-sub); line-height: 1.6;">
+            バージョン: <span id="display-version">v1.37</span><br>
+            最終更新: <span id="display-last-update">2026/05/19 07:20</span>
+        </div>
+          <button class="btn btn-danger" onclick="forceReloadApp()" style="margin-top: 15px;">アプリを強制更新する</button>
+          <button class="btn btn-primary" onclick="showUpdateNotesModalExplicitly()" style="margin-top: 10px;">最新の更新内容を表示</button>
+      </div>
   </div>
 </div><!-- /page-settings -->
 
