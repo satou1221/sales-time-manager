@@ -307,21 +307,27 @@ function updateHeaderUser() {
 
 // ============================================================
 // ページ切り替え
-// ===========================================================function showPage(pageId) {
-  console.log('showPage called with:', pageId);
+// =========================================================function showPage(pageId) {
+  console.log(\'showPage called with:\', pageId);
 
-  currentPage = page;
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('page-' + page).classList.add('active');
-  document.getElementById('nav-' + page).classList.add('active');
+  currentPage = pageId;
+  document.querySelectorAll(\'\.page\').forEach(p => p.classList.remove(\'active\'));
+  document.querySelectorAll(\'\.nav-btn\').forEach(b => b.classList.remove(\'active\'));
 
-  if (page === 'today')    renderTodayPage();
-  if (page === 'monthly')  renderMonthlyPage();
-  if (page === 'settings') { loadSettingsForm(); renderSettingsCalendar(); }
-}
+  document.getElementById(\'page-\' + pageId).classList.add(\'active\');
+  document.getElementById(\'nav-\' + pageId).classList.add(\'active\');
 
-// ============================================================
+  if (pageId === \'today\') {
+    renderTodayPage();
+  }
+  if (pageId === \'monthly\') {
+    renderMonthlyPage();
+  }
+  if (pageId === \'settings\') {
+    loadSettingsForm();
+    renderSettingsCalendar();
+  }
+}// ============================================================
 // ホーム画面の状態更新
 // ============================================================
 function updateHomeStatus() {
