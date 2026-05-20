@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.40'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.41'; // アプリケーションのバージョン
 const PARTY_TYPE = '懇親会対応';
 const BREAK_TYPE = '休憩';
 
@@ -307,8 +307,9 @@ function updateHeaderUser() {
 
 // ============================================================
 // ページ切り替え
-// ============================================================
-function showPage(page) {
+// ===========================================================function showPage(pageId) {
+  console.log('showPage called with:', pageId);
+
   currentPage = page;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
