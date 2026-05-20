@@ -67,7 +67,7 @@ html, body {
   justify-content: space-between;
   position: absolute;
   top: 0; left: 0; right: 0;
-  z-index: 100;
+  z-index: 9999;
   border-bottom: 1px solid rgba(255,255,255,.1);
 }
 #app-header h1 { font-size: .95rem; font-weight: 700; }
@@ -81,7 +81,7 @@ html, body {
   background: #1e3a4a;
   border-top: 1px solid rgba(255,255,255,.15);
   display: flex;
-  z-index: 100;
+  z-index: 9999;
 }
 .nav-btn {
   flex: 1;
