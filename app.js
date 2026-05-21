@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.42'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.43'; // アプリケーションのバージョン
 const PARTY_TYPE = '懇親会対応';
 const BREAK_TYPE = '休憩';
 
@@ -309,26 +309,28 @@ function updateHeaderUser() {
 // ページ切り替え
 // ============================================================
 function showPage(pageId) {
-  console.log(\'showPage called with:\', pageId);
+  console.log('showPage called with:', pageId);
 
   currentPage = pageId;
-  document.querySelectorAll(\'\.page\').forEach(p => p.classList.remove(\'active\'));
-  document.querySelectorAll(\'\.nav-btn\').forEach(b => b.classList.remove(\'active\'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
 
-  document.getElementById(\'page-\' + pageId).classList.add(\'active\');
-  document.getElementById(\'nav-\' + pageId).classList.add(\'active\');
+  document.getElementById('page-' + pageId).classList.add('active');
+  document.getElementById('nav-' + pageId).classList.add('active');
 
-  if (pageId === \'today\') {
+  if (pageId === 'today') {
     renderTodayPage();
   }
-  if (pageId === \'monthly\') {
+  if (pageId === 'monthly') {
     renderMonthlyPage();
   }
-  if (pageId === \'settings\') {
+  if (pageId === 'settings') {
     loadSettingsForm();
     renderSettingsCalendar();
   }
-}// ============================================================
+}
+
+// ============================================================
 // ホーム画面の状態更新
 // ============================================================
 function updateHomeStatus() {
