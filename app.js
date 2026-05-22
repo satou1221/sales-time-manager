@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.43'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.44'; // アプリケーションのバージョン
 const PARTY_TYPE = '懇親会対応';
 const BREAK_TYPE = '休憩';
 
@@ -34,13 +34,14 @@ let elapsedTimer     = null;
 let currentPage      = 'home';
 let viewMonth        = { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
 let settingsMonth    = { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
-let viewTodayDate    = toDateStr(new Date());
+let viewTodayDate    = null; // DOMContentLoadedで初期化
 let selectedWorkType = null;
 
 // ============================================================
 // 初期化
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
+  viewTodayDate = toDateStr(new Date()); // ここで初期化
   loadAll();
   if (!currentUser || !currentUser.name) {
     showSetupScreen();
