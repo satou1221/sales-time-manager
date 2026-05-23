@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.49'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.50'; // アプリケーションのバージョン
 const PARTY_TYPE = '懇親会対応';
 const BREAK_TYPE = '休憩';
 
@@ -79,14 +79,65 @@ function registerSW() {
     navigator.serviceWorker.register('./sw.js').then(reg => {
       // 通知の許可を求める
       if ('Notification' in window && Notification.permission === 'default') {
-        // ユーザーに負担をかけないよう、アプリ初期化後に少し遅らせて表示
         setTimeout(() => {
           Notification.requestPermission();
         }, 3000);
       }
 
-      // 自動更新プロンプトは廃止
+      // アプリ起動時に更新チェック
+      reg.update();
+
+      // 新しいService Workerが待機状態になったら更新バナーを表示
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            showUpdateBanner();
+          }
+        });
+      });
+
+      // 別タブ等でSWが更新された場合も検知
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      });
+
     }).catch(() => {});
+  }
+}
+
+function showUpdateBanner() {
+  let banner = document.getElementById('update-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'update-banner';
+    banner.style.cssText = [
+      'position:fixed', 'bottom:70px', 'left:50%', 'transform:translateX(-50%)',
+      'background:#1a73e8', 'color:#fff', 'padding:12px 20px',
+      'border-radius:24px', 'box-shadow:0 4px 12px rgba(0,0,0,0.3)',
+      'z-index:99999', 'display:flex', 'align-items:center', 'gap:12px',
+      'font-size:14px', 'white-space:nowrap'
+    ].join(';');
+    banner.innerHTML = '<span>新しいバージョンがあります</span>' +
+      '<button onclick="applyUpdate()" style="background:#fff;color:#1a73e8;border:none;' +
+      'border-radius:16px;padding:6px 14px;font-weight:bold;cursor:pointer;">今すぐ更新</button>';
+    document.body.appendChild(banner);
+  }
+  banner.style.display = 'flex';
+}
+
+function applyUpdate() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then(reg => {
+      if (reg && reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      } else {
+        window.location.reload();
+      }
+    });
+  } else {
+    window.location.reload();
   }
 }
 

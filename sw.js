@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sales-time-v56';
+const CACHE_NAME = 'sales-time-v57';
 const ASSETS = [
   './index.html',
   './app.js',
@@ -33,6 +33,13 @@ self.addEventListener('notificationclick', (e) => {
       if (clients.openWindow) return clients.openWindow('./index.html');
     })
   );
+});
+
+// メインスレッドからのメッセージを受信
+self.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // ネットワーク優先（失敗時のみキャッシュ）
