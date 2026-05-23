@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.45'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.46'; // アプリケーションのバージョン
 const PARTY_TYPE = '懇親会対応';
 const BREAK_TYPE = '休憩';
 
@@ -49,6 +49,12 @@ document.addEventListener('DOMContentLoaded', () => {
     initApp();
   }
   registerSW();
+  
+  // 「登録して開始」ボタンのイベントリスナーを登録
+  const btnSaveSetup = document.getElementById('btn-save-setup');
+  if (btnSaveSetup) {
+    btnSaveSetup.addEventListener('click', saveSetup);
+  }
 });
 
 function registerSW() {
