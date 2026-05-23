@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.48'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.49'; // アプリケーションのバージョン
 const PARTY_TYPE = '懇親会対応';
 const BREAK_TYPE = '休憩';
 
@@ -1294,7 +1294,19 @@ function renderSettingsCalendar() {
     const status  = dayStatuses.find(s => s.date === dateStr);
     const el = document.createElement('div');
     el.className = 'cal-day';
-    if (status) el.classList.add('status-' + status.status);
+    el.dataset.date = dateStr;
+    if (status) {
+      const statusMap = { holiday: 'is-holiday', paid: 'is-paid', hourly: 'is-hourly' };
+      if (statusMap[status.status]) el.classList.add(statusMap[status.status]);
+    }
+    // 土日の色
+    const dow = new Date(dateStr + 'T00:00:00').getDay();
+    if (dow === 0) el.classList.add('sun');
+    if (dow === 6) el.classList.add('sat');
+    // 今日のハイライト
+    if (dateStr === toDateStr(new Date())) el.classList.add('today');
+    // 選択状態
+    if (dateStr === selectedCalendarDate) el.classList.add('cal-selected');
     
     let content = `<span>${d}</span>`;
     if (status && status.status === 'hourly' && status.startTime && status.endTime) {
@@ -1313,7 +1325,12 @@ function openDayStatusModal(date) {
   selectedCalendarDate = date;
   
   // カレンダーの選択状態を更新
-  document.querySelectorAll('.cal-day').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.cal-day').forEach(el => el.classList.remove('cal-selected'));
+  // クリックされた日付をハイライト
+  const clickedEls = document.querySelectorAll('.cal-day');
+  clickedEls.forEach(el => {
+    if (el.dataset && el.dataset.date === date) el.classList.add('cal-selected');
+  });
   const status = dayStatuses.find(s => s.date === date);
   
   // holiday-type-selectの値を設定
@@ -1326,17 +1343,47 @@ function openDayStatusModal(date) {
     hourlyGroup.style.display = (status && status.status === 'hourly') ? 'block' : 'none';
   }
   if (status && status.status === 'hourly') {
-    const hourlyInput = document.getElementById('hourly-time-input');
-    if (hourlyInput) hourlyInput.value = status.startTime || '';
+    // 時間休の既存値をセレクトボックスに反映
+    const startSel = document.getElementById('hourly-start-input');
+    const endSel   = document.getElementById('hourly-end-input');
+    if (startSel && startSel.options.length === 0) buildTimeOptions(startSel, status.startTime || '08:30');
+    else if (startSel) startSel.value = status.startTime || '08:30';
+    if (endSel   && endSel.options.length === 0)   buildTimeOptions(endSel,   status.endTime   || '09:00');
+    else if (endSel)   endSel.value   = status.endTime   || '09:00';
   }
   
   showToast(`${date}を選択しました`);
 }
 
+function buildTimeOptions(selectEl, selectedVal) {
+  if (!selectEl) return;
+  selectEl.innerHTML = '';
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 10) {
+      const val = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = val;
+      if (val === selectedVal) opt.selected = true;
+      selectEl.appendChild(opt);
+    }
+  }
+}
+
 function toggleHourlyTimeGroup() {
   const type = document.getElementById('holiday-type-select').value;
   const group = document.getElementById('hourly-time-group');
-  if (group) group.style.display = (type === 'hourly') ? 'block' : 'none';
+  if (!group) return;
+  if (type === 'hourly') {
+    group.style.display = 'block';
+    // 初回表示時に選択肢を生成
+    const startSel = document.getElementById('hourly-start-input');
+    const endSel   = document.getElementById('hourly-end-input');
+    if (startSel && startSel.options.length === 0) buildTimeOptions(startSel, '08:30');
+    if (endSel   && endSel.options.length === 0)   buildTimeOptions(endSel,   '09:00');
+  } else {
+    group.style.display = 'none';
+  }
 }
 
 function applyHoliday() {
@@ -1350,11 +1397,14 @@ function applyHoliday() {
   if (type !== 'none') {
     const newStatus = { date, status: type };
     if (type === 'hourly') {
-      const hourlyInput = document.getElementById('hourly-time-input');
-      const timeVal = hourlyInput ? hourlyInput.value : '';
-      if (!timeVal) { showToast('時間休の時刻を入力してください'); return; }
-      newStatus.startTime = timeVal;
-      newStatus.endTime   = timeVal; // 簡易実装：開始時刻のみ保存
+      const startSel = document.getElementById('hourly-start-input');
+      const endSel   = document.getElementById('hourly-end-input');
+      const startVal = startSel ? startSel.value : '';
+      const endVal   = endSel   ? endSel.value   : '';
+      if (!startVal || !endVal) { showToast('時間休の開始・終了時刻を選択してください'); return; }
+      if (startVal >= endVal) { showToast('終了時刻は開始時刻より後にしてください'); return; }
+      newStatus.startTime = startVal;
+      newStatus.endTime   = endVal;
     }
     dayStatuses.push(newStatus);
   }
