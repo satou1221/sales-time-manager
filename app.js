@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.46'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.47'; // アプリケーションのバージョン
 const PARTY_TYPE = '懇親会対応';
 const BREAK_TYPE = '休憩';
 
@@ -55,6 +55,23 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnSaveSetup) {
     btnSaveSetup.addEventListener('click', saveSetup);
   }
+
+  // ナビゲーションボタンのイベントリスナーを登録（iPhone Safari対応）
+  const navMap = {
+    'nav-home':     'home',
+    'nav-today':    'today',
+    'nav-monthly':  'monthly',
+    'nav-settings': 'settings'
+  };
+  Object.keys(navMap).forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        showPage(navMap[id]);
+      });
+    }
+  });
 });
 
 function registerSW() {
@@ -258,10 +275,16 @@ function saveDayStatuses(){ localStorage.setItem(KEY_DAYSTATUS, JSON.stringify(d
 // 初期設定画面
 // ============================================================
 function showSetupScreen() {
-  document.getElementById('setup-screen').style.display = 'block';
+  const el = document.getElementById('setup-screen');
+  el.style.display = 'block';
+  el.style.visibility = 'visible';
+  el.style.pointerEvents = 'auto';
 }
 function hideSetupScreen() {
-  document.getElementById('setup-screen').style.display = 'none';
+  const el = document.getElementById('setup-screen');
+  el.style.display = 'none';
+  el.style.visibility = 'hidden';
+  el.style.pointerEvents = 'none';
 }
 function saveSetup() {
   const empId = document.getElementById('setup-emp-id').value.trim();

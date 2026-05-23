@@ -674,6 +674,8 @@ html, body {
 /* ===== 初期設定画面 ===== */
 #setup-screen {
   display: none;
+  visibility: hidden;
+  pointer-events: none;
   position: fixed;
   inset: 0;
   background: #2c4a5e;
