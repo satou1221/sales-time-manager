@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.51'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.52'; // アプリケーションのバージョン
 
 // ============================================================
 // 日本の祝日データ（2024〜2027年）
@@ -435,6 +435,7 @@ function saveSetup() {
   const empId = document.getElementById('setup-emp-id').value.trim();
   const name  = document.getElementById('setup-name').value.trim();
   const dept  = document.getElementById('setup-dept').value.trim();
+  const role  = document.getElementById('setup-role').value.trim();
   const start = document.getElementById('setup-start').value || '08:30';
   const end   = document.getElementById('setup-end').value   || '17:30';
   const bStart = document.getElementById('setup-break-start').value || '12:00';
@@ -443,8 +444,9 @@ function saveSetup() {
   if (!/^\d{6}$/.test(empId)) { showToast('社員番号は6桁の数字で入力してください'); return; }
   if (!name) { showToast('氏名を入力してください'); return; }
   if (!dept) { showToast('部門を選択してください'); return; }
+  if (!role) { showToast('役職を選択してください'); return; }
   
-  currentUser = { empId, name, dept, workStart: start, workEnd: end, breakStart: bStart, breakEnd: bEnd };
+  currentUser = { empId, name, dept, role, workStart: start, workEnd: end, breakStart: bStart, breakEnd: bEnd };
   saveUser();
   hideSetupScreen();
   initApp();
@@ -479,7 +481,7 @@ function updateHeaderUser() {
   const nameEl = document.getElementById('header-name');
   const deptEl = document.getElementById('header-dept');
   if (nameEl) nameEl.textContent = `${currentUser.empId || ''} ${currentUser.name}`;
-  if (deptEl) deptEl.textContent = currentUser.dept;
+  if (deptEl) deptEl.textContent = currentUser.dept + (currentUser.role ? ' ' + currentUser.role : '');
 }
 
 // ============================================================
@@ -795,10 +797,23 @@ function checkWarnings() {
   let alertMsg = "";
   let alertTag = "";
 
-  // ① 始業未開始（平日のみ）
-  if (!isHolidayOrSpecial(today) && !activeSession && nowMin >= startMin && nowMin < startMin + 10) {
-    alertMsg = "始業時間です。業務を開始してください。";
-    alertTag = "start-forget";
+  // ① 始業時自動計測開始（平日のみ）
+  if (!isHolidayOrSpecial(today) && !activeSession && nowMin === startMin) {
+    // 始業時刻に「社内対応」で自動計測開始
+    activeSession = {
+      id:        genId(),
+      workType:  '社内対応',
+      type:      'work',
+      startTime: new Date(now.getFullYear(), now.getMonth(), now.getDate(),
+                          sh, sm, 0, 0).toISOString(),
+      memo:      '自動計測開始'
+    };
+    saveActive();
+    updateHomeStatus();
+    alertMsg = "始業時間のため社内業務で計測開始しました";
+    alertTag = "auto-start";
+    sendNotification("業務時間管理", alertMsg);
+    lastNotifiedTag = alertTag;
   }
   // ② 休憩未開始（10分経過）
   else if (!isHolidayOrSpecial(today) && activeSession && activeSession.type !== BREAK_TYPE && nowMin >= bStartMin + 10 && nowMin < bEndMin) {
@@ -818,17 +833,12 @@ function checkWarnings() {
       alertTag = "long-work";
     }
   }
-  // ⑤ 終業未終了
-  else if (!isHolidayOrSpecial(today) && activeSession && nowMin >= endMin + 10 && nowMin < endMin + 20) {
-    alertMsg = "終業時間から10分経過しました。業務終了ボタンを押してください。";
-    alertTag = "end-forget";
+  // ⑤ 夜間終了忘れ（20:00）
+  else if (activeSession && now.getHours() === 20 && now.getMinutes() < 10) {
+    alertMsg = "20時です。業務終了の押し忘れはありませんか？";
+    alertTag = "night-forget";
   }
-  // ⑥ 深夜終了忘れ（22:00）
-  else if (activeSession && now.getHours() === 22 && now.getMinutes() < 10) {
-    alertMsg = "深夜22時です。業務終了の押し忘れはありませんか？";
-    alertTag = "midnight-forget";
-  }
-  // ⑦ 懇親会180分経過
+  // ⑥ 懇親会180分経過
   else if (activeSession && activeSession.workType === PARTY_TYPE) {
     const elapsed = Math.floor((now - new Date(activeSession.startTime)) / 60000);
     if (elapsed >= 180 && elapsed < 190) {
@@ -932,19 +942,47 @@ function checkWorkSplit(now) {
     return;
   }
 
-  // 3. 終業20分後の継続確認
+  // 3. 終業20分後の継続確認（カスタムモーダル）
   if (nowMin === endMinTime + 20 && otConfirmedId !== activeSession.id) {
-    const confirmed = confirm("終業時刻から20分経過しました。時間外計測を続行しますか？\n\n[はい] 続行する\n[いいえ] 終業時刻で終了する（以降の記録を削除）");
-    if (confirmed) {
-      otConfirmedId = activeSession.id;
-    } else {
-      // 終業時刻以降の記録を破棄して終了
-      activeSession = null;
-      saveActive();
-      updateHomeStatus();
-      showToast('終業時刻で記録を保存しました');
-    }
+    const sessionId = activeSession.id;
+    otConfirmedId = sessionId; // 重複表示防止
+    showOtConfirmModal(sessionId);
   }
+}
+
+// 終業20分後の確認モーダルを表示
+function showOtConfirmModal(sessionId) {
+  const modal = document.getElementById('ot-confirm-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.dataset.sessionId = sessionId;
+  }
+}
+
+// 「はい」→計測継続
+function otConfirmYes() {
+  const modal = document.getElementById('ot-confirm-modal');
+  if (modal) modal.style.display = 'none';
+  showToast('計測を続行します。作業内容をメモに記載してください');
+}
+
+// 「いいえ」→終業時刻以降の記録を削除し終了
+function otConfirmNo() {
+  const modal = document.getElementById('ot-confirm-modal');
+  if (modal) modal.style.display = 'none';
+  if (!activeSession || !currentUser) return;
+  const [eh, em] = currentUser.workEnd.split(':').map(Number);
+  const endDt = new Date();
+  endDt.setHours(eh, em, 0, 0);
+  // 終業時刻以降に開始したセッションを削除
+  const endIso = endDt.toISOString();
+  records = records.filter(r => r.startTime >= endIso || r.date !== toDateStr(endDt));
+  // 現在のアクティブセッションも終了
+  activeSession = null;
+  saveActive();
+  saveRecords();
+  updateHomeStatus();
+  showToast('終業時刻以降の記録を削除しました');
 }
 
 // ============================================================
@@ -1373,6 +1411,7 @@ function loadSettingsForm() {
   document.getElementById('cfg-emp-id').value = currentUser.empId || '';
   document.getElementById('cfg-name').value   = currentUser.name;
   document.getElementById('cfg-dept').value   = currentUser.dept;
+  document.getElementById('cfg-role').value   = currentUser.role || '';
   document.getElementById('cfg-start').value  = currentUser.workStart;
   document.getElementById('cfg-end').value    = currentUser.workEnd;
   document.getElementById('cfg-break-start').value = currentUser.breakStart;
@@ -1383,6 +1422,7 @@ function saveSettings() {
   const empId = document.getElementById('cfg-emp-id').value.trim();
   const name  = document.getElementById('cfg-name').value.trim();
   const dept  = document.getElementById('cfg-dept').value.trim();
+  const role  = document.getElementById('cfg-role').value.trim();
   const start = document.getElementById('cfg-start').value;
   const end   = document.getElementById('cfg-end').value;
   const bStart = document.getElementById('cfg-break-start').value;
@@ -1391,7 +1431,7 @@ function saveSettings() {
   if (!/^\d{6}$/.test(empId)) { showToast('社員番号は6桁の数字で入力してください'); return; }
   if (!name) { showToast('氏名を入力してください'); return; }
   
-  currentUser = { ...currentUser, empId, name, dept, workStart: start, workEnd: end, breakStart: bStart, breakEnd: bEnd };
+  currentUser = { ...currentUser, empId, name, dept, role, workStart: start, workEnd: end, breakStart: bStart, breakEnd: bEnd };
   saveUser();
   updateHeaderUser();
   showToast('設定を保存しました');
@@ -1618,7 +1658,7 @@ function exportCSV() {
 
   // ヘッダー
   let csv = '\uFEFF'; // BOM
-  csv += '社員番号,氏名,部門,日付,曜日,業務区分,開始時間,終了時間,通常(分),時間外(分),休憩(分),懇親会(分),休暇中業務(分),メモ\n';
+  csv += '社員番号,氏名,部門,役職,日付,曜日,業務区分,開始時間,終了時間,通常(分),時間外(分),休憩(分),懇親会(分),休暇中業務(分),メモ\n';
 
   const dayNames = ['日','月','火','水','木','金','土'];
 
@@ -1632,6 +1672,7 @@ function exportCSV() {
       currentUser.empId || '',
       currentUser.name,
       currentUser.dept,
+      currentUser.role || '',
       r.date,
       dow,
       r.workType,
