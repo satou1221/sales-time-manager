@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.47'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.48'; // アプリケーションのバージョン
 const PARTY_TYPE = '懇親会対応';
 const BREAK_TYPE = '休憩';
 
@@ -1176,10 +1176,14 @@ function deleteRecord() {
 // ============================================================
 function openNewRecordModal() {
   const now = new Date();
-  document.getElementById('new-type').value  = WORK_TYPES[0];
-  document.getElementById('new-start').value = toDatetimeLocal(now);
-  document.getElementById('new-end').value   = toDatetimeLocal(now);
-  document.getElementById('new-memo').value  = '';
+  const typeEl  = document.getElementById('new-record-type');
+  const startEl = document.getElementById('new-record-start');
+  const endEl   = document.getElementById('new-record-end');
+  const memoEl  = document.getElementById('new-record-memo');
+  if (typeEl)  typeEl.value  = WORK_TYPES[0];
+  if (startEl) startEl.value = toDatetimeLocal(now);
+  if (endEl)   endEl.value   = toDatetimeLocal(now);
+  if (memoEl)  memoEl.value  = '';
   document.getElementById('new-record-modal').classList.add('open');
 }
 
@@ -1188,10 +1192,10 @@ function closeNewRecordModal() {
 }
 
 function saveNewRecord() {
-  const type   = document.getElementById('new-type').value;
-  const startV = document.getElementById('new-start').value;
-  const endV   = document.getElementById('new-end').value;
-  const memo   = document.getElementById('new-memo').value.trim();
+  const type   = document.getElementById('new-record-type').value;
+  const startV = document.getElementById('new-record-start').value;
+  const endV   = document.getElementById('new-record-end').value;
+  const memo   = (document.getElementById('new-record-memo').value || '').trim();
 
   if (!startV || !endV) { showToast('開始・終了日時を入力してください'); return; }
   const startDt = new Date(startV);
@@ -1260,7 +1264,7 @@ function changeSettingsMonth(delta) {
 
 function renderSettingsCalendar() {
   const ym = `${settingsMonth.year}-${String(settingsMonth.month).padStart(2,'0')}`;
-  const labelEl = document.getElementById('settings-month-label');
+  const labelEl = document.getElementById('settings-calendar-month');
   if (!labelEl) return; // 要素が存在しない場合は何もしない
   labelEl.textContent = `${settingsMonth.year}年${settingsMonth.month}月`;
   
@@ -1302,58 +1306,62 @@ function renderSettingsCalendar() {
   }
 }
 
+// 現在選択中の日付（カレンダークリックで設定）
+let selectedCalendarDate = null;
+
 function openDayStatusModal(date) {
-  document.getElementById('status-modal-date').value = date;
-  const d = new Date(date + 'T00:00:00');
-  const dayNames = ['日','月','火','水','木','金','土'];
-  document.getElementById('status-modal-title').textContent = `${date}（${dayNames[d.getDay()]}）の状態設定`;
+  selectedCalendarDate = date;
   
+  // カレンダーの選択状態を更新
+  document.querySelectorAll('.cal-day').forEach(el => el.classList.remove('selected'));
   const status = dayStatuses.find(s => s.date === date);
-  const typeSelect = document.getElementById('day-status-type');
-  typeSelect.value = status ? status.status : 'normal';
+  
+  // holiday-type-selectの値を設定
+  const typeSelect = document.getElementById('holiday-type-select');
+  if (typeSelect) typeSelect.value = status ? status.status : 'none';
   
   // 時間休フォームの表示制御
-  toggleHourlyForm();
+  const hourlyGroup = document.getElementById('hourly-time-group');
+  if (hourlyGroup) {
+    hourlyGroup.style.display = (status && status.status === 'hourly') ? 'block' : 'none';
+  }
   if (status && status.status === 'hourly') {
-    document.getElementById('hourly-start').value = status.startTime || '';
-    document.getElementById('hourly-end').value   = status.endTime || '';
+    const hourlyInput = document.getElementById('hourly-time-input');
+    if (hourlyInput) hourlyInput.value = status.startTime || '';
   }
   
-  document.getElementById('day-status-modal').classList.add('open');
+  showToast(`${date}を選択しました`);
 }
 
-function toggleHourlyForm() {
-  const type = document.getElementById('day-status-type').value;
-  document.getElementById('hourly-form').style.display = (type === 'hourly') ? 'block' : 'none';
+function toggleHourlyTimeGroup() {
+  const type = document.getElementById('holiday-type-select').value;
+  const group = document.getElementById('hourly-time-group');
+  if (group) group.style.display = (type === 'hourly') ? 'block' : 'none';
 }
 
-function saveDayStatus() {
-  const date = document.getElementById('status-modal-date').value;
-  const type = document.getElementById('day-status-type').value;
+function applyHoliday() {
+  if (!selectedCalendarDate) { showToast('カレンダーから日付を選択してください'); return; }
+  
+  const type = document.getElementById('holiday-type-select').value;
+  const date = selectedCalendarDate;
   
   dayStatuses = dayStatuses.filter(s => s.date !== date);
   
-  if (type !== 'normal') {
+  if (type !== 'none') {
     const newStatus = { date, status: type };
     if (type === 'hourly') {
-      newStatus.startTime = document.getElementById('hourly-start').value;
-      newStatus.endTime   = document.getElementById('hourly-end').value;
-      if (!newStatus.startTime || !newStatus.endTime) {
-        showToast('時間休の開始・終了時刻を入力してください');
-        return;
-      }
+      const hourlyInput = document.getElementById('hourly-time-input');
+      const timeVal = hourlyInput ? hourlyInput.value : '';
+      if (!timeVal) { showToast('時間休の時刻を入力してください'); return; }
+      newStatus.startTime = timeVal;
+      newStatus.endTime   = timeVal; // 簡易実装：開始時刻のみ保存
     }
     dayStatuses.push(newStatus);
   }
   
   saveDayStatuses();
-  closeDayStatusModal();
   renderSettingsCalendar();
-  showToast('状態を保存しました');
-}
-
-function closeDayStatusModal() {
-  document.getElementById('day-status-modal').classList.remove('open');
+  showToast('保存しました');
 }
 
 function isHolidayOrSpecial(dateStr) {
