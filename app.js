@@ -331,8 +331,10 @@ function updateVersionDisplay() {
 
 function updateHeaderUser() {
   if (!currentUser) return;
-  document.getElementById('header-name').textContent = `${currentUser.empId || ''} ${currentUser.name}`;
-  document.getElementById('header-dept').textContent = currentUser.dept;
+  const nameEl = document.getElementById('header-name');
+  const deptEl = document.getElementById('header-dept');
+  if (nameEl) nameEl.textContent = `${currentUser.empId || ''} ${currentUser.name}`;
+  if (deptEl) deptEl.textContent = currentUser.dept;
 }
 
 // ============================================================
@@ -366,6 +368,7 @@ function showPage(pageId) {
 function updateHomeStatus() {
   const nameEl    = document.getElementById('home-work-name');
   const badgeEl   = document.getElementById('home-state-badge');
+  if (!nameEl || !badgeEl) return; // 要素が存在しない場合は何もしない
 
   if (!activeSession) {
     nameEl.textContent = '業務未開始';
@@ -414,6 +417,7 @@ function startElapsedTimer() {
 
 function updateElapsed() {
   const el = document.getElementById('home-elapsed');
+  if (!el) return; // 要素が存在しない場合は何もしない
   if (!activeSession) {
     el.textContent = '--:--';
     return;
@@ -1256,9 +1260,12 @@ function changeSettingsMonth(delta) {
 
 function renderSettingsCalendar() {
   const ym = `${settingsMonth.year}-${String(settingsMonth.month).padStart(2,'0')}`;
-  document.getElementById('settings-month-label').textContent = `${settingsMonth.year}年${settingsMonth.month}月`;
+  const labelEl = document.getElementById('settings-month-label');
+  if (!labelEl) return; // 要素が存在しない場合は何もしない
+  labelEl.textContent = `${settingsMonth.year}年${settingsMonth.month}月`;
   
   const grid = document.getElementById('settings-calendar-grid');
+  if (!grid) return; // 要素が存在しない場合は何もしない
   grid.innerHTML = '';
   
   const firstDay = new Date(settingsMonth.year, settingsMonth.month - 1, 1);
@@ -1484,6 +1491,7 @@ function showToast(msg) {
 
 function updateDayStatusBanner() {
   const banner = document.getElementById('day-status-banner');
+  if (!banner) return; // 要素が存在しない場合は何もしない
   const today = toDateStr(new Date());
   const status = dayStatuses.find(s => s.date === today);
   
@@ -1493,7 +1501,7 @@ function updateDayStatusBanner() {
       case 'holiday': label = '【本日は休日設定です】'; break;
       case 'paid':    label = '【本日は有給休暇設定です】'; break;
       case 'special': label = '【本日は特別休暇設定です】'; break;
-      case 'hourly':  label = `【本日は時間休設定です（${status.startTime}〜${status.endTime}）】`; break;
+      case 'hourly':  label = `【本日は時間休設定です（${status.startTime}～${status.endTime}）】`; break;
     }
     banner.textContent = label;
     banner.style.display = 'block';
