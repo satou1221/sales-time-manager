@@ -457,8 +457,25 @@ html, body {
 .cal-day.is-holiday { background: #ffcdd2 !important; border-color: #e53935; color: #b71c1c; }
 .cal-day.is-paid    { background: #c8e6c9 !important; border-color: #43a047; color: #1b5e20; }
 .cal-day.is-hourly  { background: #fff9c4 !important; border-color: #fbc02d; color: #f57f17; }
+.cal-day.is-special { background: #e8d5f5 !important; border-color: #8e24aa; color: #4a148c; }
 /* 選択中の日付 */
 .cal-day.cal-selected { outline: 3px solid var(--primary) !important; outline-offset: -2px; font-weight: bold; }
+
+/* 祝日名表示（絶対配置でセルサイズに影響しない） */
+.cal-holiday-name {
+  position: absolute;
+  bottom: 1px;
+  left: 0;
+  right: 0;
+  font-size: 0.42rem;
+  line-height: 1;
+  text-align: center;
+  color: #b71c1c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
 
 /* 時間休の時刻表示（絶対配置でセルサイズに影響しない） */
 .cal-hourly-time {
@@ -490,6 +507,7 @@ html, body {
 .l-holiday { background: #ffcdd2; border-color: #e53935; }
 .l-paid    { background: #c8e6c9; border-color: #43a047; }
 .l-hourly  { background: #fff9c4; border-color: #fbc02d; }
+.l-special { background: #e8d5f5; border-color: #8e24aa; }
 
 /* ===== カード ===== */
 .card {
