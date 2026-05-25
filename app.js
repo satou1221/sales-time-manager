@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.53'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.54'; // アプリケーションのバージョン
 
 // ============================================================
 // 日本の祝日データ（2024〜2027年）
@@ -807,22 +807,24 @@ function checkWarnings() {
   let alertTag = "";
 
   // ① 始業時自動計測開始（平日のみ）
-  if (!isHolidayOrSpecial(today) && !activeSession && nowMin === startMin) {
-    // 始業時刻に「社内対応」で自動計測開始
-    activeSession = {
-      id:        genId(),
-      workType:  '社内対応',
-      type:      'work',
-      startTime: new Date(now.getFullYear(), now.getMonth(), now.getDate(),
-                          sh, sm, 0, 0).toISOString(),
-      memo:      '自動計測開始'
-    };
-    saveActive();
-    updateHomeStatus();
-    alertMsg = "始業時間のため社内業務で計測開始しました";
-    alertTag = "auto-start";
-    sendNotification("業務時間管理", alertMsg);
-    lastNotifiedTag = alertTag;
+  // 始業時刻ちょうど、または1分経過までの間に未開始なら自動開始
+  if (!isHolidayOrSpecial(today) && !activeSession && (nowMin === startMin || nowMin === startMin + 1)) {
+    if (lastNotifiedTag !== "auto-start-" + today) {
+      activeSession = {
+        id:        genId(),
+        workType:  '社内対応',
+        type:      'work',
+        startTime: new Date(now.getFullYear(), now.getMonth(), now.getDate(),
+                            sh, sm, 0, 0).toISOString(),
+        memo:      '自動計測開始'
+      };
+      saveActive();
+      updateHomeStatus();
+      alertMsg = "始業時間のため社内業務で計測開始しました";
+      alertTag = "auto-start-" + today;
+      sendNotification("業務時間管理", alertMsg);
+      lastNotifiedTag = alertTag;
+    }
   }
   // ② 休憩未開始（10分経過）
   else if (!isHolidayOrSpecial(today) && activeSession && activeSession.type !== BREAK_TYPE && nowMin >= bStartMin + 10 && nowMin < bEndMin) {
