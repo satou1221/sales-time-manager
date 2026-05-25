@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.52'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.53'; // アプリケーションのバージョン
 
 // ============================================================
 // 日本の祝日データ（2024〜2027年）
@@ -517,6 +517,9 @@ function updateHomeStatus() {
   const badgeEl   = document.getElementById('home-state-badge');
   if (!nameEl || !badgeEl) return; // 要素が存在しない場合は何もしない
 
+  // 全ての業務ボタンの選択状態を解除
+  document.querySelectorAll('.wt-btn').forEach(btn => btn.classList.remove('selected'));
+
   if (!activeSession) {
     nameEl.textContent = '業務未開始';
     setBadge(badgeEl, '待機中', 'state-idle');
@@ -526,11 +529,17 @@ function updateHomeStatus() {
   } else if (activeSession.workType === PARTY_TYPE) {
     nameEl.textContent = '懇親会対応';
     setBadge(badgeEl, '懇親会中', 'state-party');
+    // 懇親会ボタンを選択状態にする
+    const partyBtn = document.querySelector(`.wt-btn[data-type="${PARTY_TYPE}"]`);
+    if (partyBtn) partyBtn.classList.add('selected');
   } else {
     nameEl.textContent = activeSession.workType || '---';
     // 通常 or 時間外判定
     const stateLabel = isCurrentOT() ? '時間外業務' : '通常業務';
     setBadge(badgeEl, stateLabel, 'state-working');
+    // 該当する業務ボタンを選択状態にする
+    const activeBtn = document.querySelector(`.wt-btn[data-type="${activeSession.workType}"]`);
+    if (activeBtn) activeBtn.classList.add('selected');
   }
   updateActionButtons();
 }
