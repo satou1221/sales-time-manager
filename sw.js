@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sales-time-v61';
+const CACHE_NAME = 'sales-time-v62';
 const ASSETS = [
   './index.html',
   './app.js',
@@ -10,7 +10,8 @@ self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
   );
-  self.skipWaiting();
+  // skipWaiting()はここでは呼ばない
+  // メインスレッドから「今すぐ更新」ボタンが押された後にSKIP_WAITINGメッセージで切り替える
 });
 
 self.addEventListener('activate', (e) => {
