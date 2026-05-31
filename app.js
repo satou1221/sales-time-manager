@@ -1,5 +1,5 @@
 /* ============================================================
-   営業部 業務時間管理 app.js  v1.26
+   営業部 業務時間管理 app.js  v1.57
    - localStorage ベース（サーバー不要・費用ゼロ）
    - PWA対応（オフライン動作）
    ============================================================ */
@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.56'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.57'; // アプリケーションのバージョン
 
 // ============================================================
 // 日本の祝日データ（2024〜2027年）
@@ -178,10 +178,12 @@ function registerSW() {
         }, 3000);
       }
 
-      // アプリ起動時に更新チェック
-      reg.update();
+      // ① 起動時に既にwaitingのSWがあればすぐバナー表示
+      if (reg.waiting && navigator.serviceWorker.controller) {
+        showUpdateBanner();
+      }
 
-      // 新しいService Workerが待機状態になったら更新バナーを表示
+      // ② 新しいSWのインストール完了を検知してバナー表示
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing;
         if (!newWorker) return;
@@ -192,10 +194,11 @@ function registerSW() {
         });
       });
 
-      // 別タブ等でSWが更新された場合も検知
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        window.location.reload();
-      });
+      // ③ アプリ起動時に更新チェック（キャッシュバスティング付き）
+      setTimeout(() => reg.update(), 1000);
+
+      // ④ controllerchangeでの自動リロードは廃止
+      //    「今すぐ更新」ボタン押下時のみリロードする
 
     }).catch(() => {});
   }
@@ -225,6 +228,10 @@ function applyUpdate() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistration().then(reg => {
       if (reg && reg.waiting) {
+        // SKIP_WAITING後にリロードするためcontrollerchangeを一度だけ監視
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          window.location.reload();
+        }, { once: true });
         reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       } else {
         window.location.reload();
