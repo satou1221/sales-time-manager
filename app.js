@@ -1265,11 +1265,18 @@ function renderUnrecordedDays(ym) {
   card.style.display = 'block';
   list.innerHTML = unrecorded.map(({ dateStr, dow }) => {
     const [y, m, day] = dateStr.split('-');
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid #263547;">
-      <div style="font-size:14px;color:#fff;">${parseInt(m)}月${parseInt(day)}日（${DOW_NAMES[dow]}）</div>
-      <button onclick="openNewRecordForDate('${dateStr}')" style="font-size:12px;padding:5px 12px;background:#1565c0;color:#fff;border:none;border-radius:8px;cursor:pointer;">記録を入力</button>
+    const dowColor = dow === 0 ? '#ef5350' : dow === 6 ? '#42a5f5' : '#eceff1';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 8px;border-bottom:1px solid #263547;gap:8px;">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+        <span style="font-size:15px;font-weight:bold;color:${dowColor};white-space:nowrap;">${parseInt(m)}月${parseInt(day)}日</span>
+        <span style="font-size:13px;font-weight:bold;color:${dowColor};background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:6px;white-space:nowrap;">（${DOW_NAMES[dow]}）</span>
+      </div>
+      <button onclick="openNewRecordForDate('${dateStr}')" style="font-size:12px;padding:6px 14px;background:#1565c0;color:#fff;border:none;border-radius:8px;cursor:pointer;white-space:nowrap;flex-shrink:0;">記録を入力</button>
     </div>`;
   }).join('');
+  // 件数も表示
+  const countEl = document.getElementById('unrecorded-days-count');
+  if (countEl) countEl.textContent = `${unrecorded.length}件`;
 }
 
 // 未記録日から履歴新規作成画面を開く
