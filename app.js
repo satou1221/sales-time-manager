@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.55'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.56'; // アプリケーションのバージョン
 
 // ============================================================
 // 日本の祝日データ（2024〜2027年）
@@ -453,6 +453,94 @@ function saveSetup() {
 }
 
 // ============================================================
+// 起動時始業補正チェック
+// ============================================================
+function checkStartupWorkStatus() {
+  if (!currentUser) return;
+  const now = new Date();
+  const today = toDateStr(now);
+
+  // 休日・祈日・有給・特休はチェック不要
+  if (isHolidayOrSpecial(today)) return;
+
+  // 既に計測中の場合はチェック不要
+  if (activeSession) return;
+
+  const [sh, sm] = currentUser.workStart.split(':').map(Number);
+  const startMin = sh * 60 + sm;
+  const nowMin   = now.getHours() * 60 + now.getMinutes();
+
+  // 始業時刻前はチェック不要
+  if (nowMin < startMin) return;
+
+  // 当日の記録を確認
+  const todayRecs = records.filter(r => r.date === today);
+  if (todayRecs.length > 0) return; // 既に記録あり
+
+  // 始業時刻からの経過分数
+  const elapsedMin = nowMin - startMin;
+
+  const modal = document.getElementById('startup-check-modal');
+  const msgEl  = document.getElementById('startup-modal-msg');
+  const btnGrp = document.getElementById('startup-btn-group');
+  const wtWrap = document.getElementById('startup-worktype-wrap');
+
+  // 始業時刻ちょうどから最大1分以内の場合：5分前通知から起動したケース
+  if (elapsedMin <= 1) {
+    // 定時から開始か現在時刻から開始か選択
+    msgEl.textContent = `本日の勤務記録が未作成です。定時始業時刻（${currentUser.workStart}）から開始するか、現在時刻から開始するか選択してください。`;
+    wtWrap.style.display = 'block';
+    btnGrp.innerHTML = `
+      <button onclick="startupStartAt('scheduled')" style="padding:12px;background:#1565c0;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:bold;cursor:pointer;">定時（${currentUser.workStart}）から開始</button>
+      <button onclick="startupStartAt('now')" style="padding:12px;background:#2e7d32;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:bold;cursor:pointer;">現在時刻から開始</button>
+      <button onclick="startupStartAt('skip')" style="padding:12px;background:#424242;color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;">計測不要</button>
+    `;
+  } else {
+    // 始業時刻を過ぎている場合
+    msgEl.textContent = `始業時刻（${currentUser.workStart}）から${elapsedMin}分経過していますが、本日の始業記録がありません。`;
+    wtWrap.style.display = 'block';
+    btnGrp.innerHTML = `
+      <button onclick="startupStartAt('scheduled')" style="padding:12px;background:#1565c0;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:bold;cursor:pointer;">定時（${currentUser.workStart}）から開始</button>
+      <button onclick="startupStartAt('now')" style="padding:12px;background:#2e7d32;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:bold;cursor:pointer;">今から開始</button>
+      <button onclick="startupStartAt('skip')" style="padding:12px;background:#424242;color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;">計測不要</button>
+    `;
+  }
+
+  modal.style.display = 'flex';
+}
+
+function startupStartAt(mode) {
+  const modal = document.getElementById('startup-check-modal');
+  modal.style.display = 'none';
+
+  if (mode === 'skip') return;
+
+  const workType = document.getElementById('startup-worktype-select').value || '社内対応';
+  const now = new Date();
+  const [sh, sm] = currentUser.workStart.split(':').map(Number);
+
+  let startTime;
+  if (mode === 'scheduled') {
+    // 定時始業時刻から開始
+    startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), sh, sm, 0, 0);
+  } else {
+    // 現在時刻から開始
+    startTime = now;
+  }
+
+  activeSession = {
+    id:        genId(),
+    workType:  workType,
+    type:      'work',
+    startTime: startTime.toISOString(),
+    memo:      mode === 'scheduled' ? '起動時定時補正' : '起動時手動開始'
+  };
+  saveActive();
+  updateHomeStatus();
+  showToast(`「${workType}」で業務を開始しました`);
+}
+
+// ============================================================
 // アプリ初期化
 // ============================================================
 function initApp() {
@@ -465,6 +553,7 @@ function initApp() {
   renderSettingsCalendar();
   loadSettingsForm();
   updateVersionDisplay();    // バージョン情報表示
+  checkStartupWorkStatus();  // 起動時始業補正チェック
 
   showPage('home');
 }
@@ -806,6 +895,25 @@ function checkWarnings() {
   let alertMsg = "";
   let alertTag = "";
 
+  // ⓪ 始業5分前通知（平日のみ）
+  if (!isHolidayOrSpecial(today) && nowMin === startMin - 5) {
+    if (lastNotifiedTag !== 'pre-start-' + today) {
+      sendNotification('業務時間管理', `始業5分前です（${currentUser.workStart}始業）。アプリを起動してください。`);
+      lastNotifiedTag = 'pre-start-' + today;
+    }
+  }
+
+  // ⓪-B 10:00時点で当日記録がない場合の再通知（平日のみ）
+  if (!isHolidayOrSpecial(today) && now.getHours() === 10 && now.getMinutes() === 0) {
+    const todayRecs = records.filter(r => r.date === today);
+    if (todayRecs.length === 0 && !activeSession) {
+      if (lastNotifiedTag !== 'no-record-10-' + today) {
+        sendNotification('業務時間管理', '10時になりましたが本日の業務記録がありません。アプリを起動して記録を開始してください。');
+        lastNotifiedTag = 'no-record-10-' + today;
+      }
+    }
+  }
+
   // ① 始業時自動計測開始（平日のみ）
   // 始業時刻ちょうど、または1分経過までの間に未開始なら自動開始
   if (!isHolidayOrSpecial(today) && !activeSession && (nowMin === startMin || nowMin === startMin + 1)) {
@@ -1117,6 +1225,62 @@ function renderMonthlyPage() {
 
   renderMonthlyWTSummary(monthRecs, totalAll);
   renderMonthlyRecords(monthRecs);
+  renderUnrecordedDays(ym);
+}
+
+// 未記録日一覧の描画
+function renderUnrecordedDays(ym) {
+  const card = document.getElementById('unrecorded-days-card');
+  const list = document.getElementById('unrecorded-days-list');
+  if (!card || !list) return;
+
+  const [year, month] = ym.split('-').map(Number);
+  const today = toDateStr(new Date());
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  // 当月の全日をチェック（未来日は除外）
+  const unrecorded = [];
+  const DOW_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${ym}-${String(d).padStart(2,'0')}`;
+    // 未来日はスキップ
+    if (dateStr > today) break;
+    // 休日（土日・祈日・有給・特休）はスキップ
+    if (isHolidayOrSpecial(dateStr)) continue;
+    // 記録がある日はスキップ
+    const hasRecord = records.some(r => r.date === dateStr);
+    if (hasRecord) continue;
+    // 未記録日として追加
+    const dow = new Date(dateStr + 'T00:00:00').getDay();
+    const holidayName = getJapanHolidayName ? getJapanHolidayName(dateStr) : null;
+    unrecorded.push({ dateStr, dow, holidayName });
+  }
+
+  if (unrecorded.length === 0) {
+    card.style.display = 'none';
+    return;
+  }
+
+  card.style.display = 'block';
+  list.innerHTML = unrecorded.map(({ dateStr, dow }) => {
+    const [y, m, day] = dateStr.split('-');
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid #263547;">
+      <div style="font-size:14px;color:#fff;">${parseInt(m)}月${parseInt(day)}日（${DOW_NAMES[dow]}）</div>
+      <button onclick="openNewRecordForDate('${dateStr}')" style="font-size:12px;padding:5px 12px;background:#1565c0;color:#fff;border:none;border-radius:8px;cursor:pointer;">記録を入力</button>
+    </div>`;
+  }).join('');
+}
+
+// 未記録日から履歴新規作成画面を開く
+function openNewRecordForDate(dateStr) {
+  // 本日ページに移動し、新規記録モードで指定日付をセット
+  viewTodayDate = dateStr;
+  showPage('today');
+  setTimeout(() => {
+    // 新規作成モーダルを開く
+    if (typeof openAddModal === 'function') openAddModal();
+  }, 200);
 }
 
 // 本日ページ用の横棒グラフ描画（業務区分ベース）

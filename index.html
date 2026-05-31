@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="業務時間">
   <title>営業部 業務時間管理</title>
-  <link rel="stylesheet" href="style.css?v=1.55">
+  <link rel="stylesheet" href="style.css?v=1.56">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -81,6 +81,30 @@
       <button onclick="otConfirmNo()" style="flex:1;padding:12px;background:#c62828;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:bold;cursor:pointer;">いいえ（記録削除）</button>
     </div>
     <div style="font-size:11px;color:#78909c;margin-top:12px;text-align:center;">「はい」の場合、作業内容をメモに記載してください</div>
+  </div>
+</div>
+
+<!-- ===== 始業補正ダイアログ ===== -->
+<div id="startup-check-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99999;align-items:center;justify-content:center;">
+  <div style="background:#1e2a3a;border-radius:16px;padding:24px;max-width:360px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+    <div id="startup-modal-title" style="font-size:15px;font-weight:bold;color:#fff;margin-bottom:10px;">&#128203; 本日の始業記録がありません</div>
+    <div id="startup-modal-msg" style="font-size:13px;color:#b0bec5;margin-bottom:16px;line-height:1.6;"></div>
+    <!-- 業務区分選択（定時・今から開始時のみ表示） -->
+    <div id="startup-worktype-wrap" style="display:none;margin-bottom:16px;">
+      <div style="font-size:13px;color:#90caf9;margin-bottom:8px;">業務区分を選択してください</div>
+      <select id="startup-worktype-select" class="form-input" style="width:100%;">
+        <option value="社内対応">社内対応</option>
+        <option value="九電碍・点">九電碍・点</option>
+        <option value="九電管路">九電管路</option>
+        <option value="他電力碍・点">他電力碍・点</option>
+        <option value="直送商">直送商</option>
+        <option value="在庫商">在庫商</option>
+        <option value="外販製品（非電力）">外販製品（非電力）</option>
+        <option value="TKD">TKD</option>
+      </select>
+    </div>
+    <!-- ボタン群 -->
+    <div id="startup-btn-group" style="display:flex;flex-direction:column;gap:10px;"></div>
   </div>
 </div>
 
@@ -256,6 +280,13 @@
 
     <div class="section-sep"></div>
     <button class="btn btn-csv" onclick="exportCSV()">&#128190; CSV出力（LINE WORKSで送信）</button>
+  </div>
+
+  <!-- 未記録日一覧 -->
+  <div class="card" id="unrecorded-days-card" style="display:none;">
+    <div class="card-title" style="color:#e53935;">&#9888;&#65039; 未記録の業務日</div>
+    <div style="font-size:12px;color:#b0bec5;margin-bottom:10px;">休日・祈日・有給以外で記録がない日です。履歴の新規作成または変更機能で入力してください。</div>
+    <div id="unrecorded-days-list"></div>
   </div>
 
   <!-- 日別記録 -->
@@ -524,7 +555,7 @@
 <!-- ===== トースト ===== -->
 <div id="toast"></div>
 
-<script src="app.js?v=1.55"></script>
+<script src="app.js?v=1.56"></script>
 
 <!-- ===== ナビゲーション（4タブ） ===== -->
 <nav id="nav-bar">
