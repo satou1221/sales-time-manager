@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.58'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.61'; // アプリケーションのバージョン
 
 // ============================================================
 // 日本の祝日データ（2024〜2027年）
@@ -735,7 +735,7 @@ function _startNewWork(type, btn) {
   activeSession = {
     id:        genId(),
     workType:  type,
-    type:      'work',
+    type:      type === PARTY_TYPE ? PARTY_TYPE : 'work',
     startTime: new Date().toISOString(),
     memo:      ''
   };
