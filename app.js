@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.63'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.64'; // アプリケーションのバージョン
 
 // ============================================================
 // 日本の祝日データ（2024〜2027年）
@@ -776,9 +776,8 @@ function endCurrentSession() {
   const start = new Date(activeSession.startTime);
   const dateStr = toDateStr(start);
   
-  // 1分未満でも記録を保存する（テストや短時間業務のため）
-  // テストや短時間業務のため、1秒以上あれば記録する
-  if (now - start < 1000) {
+  // 1分未満は記録しない（誤操作防止）
+  if (now - start < 60000) {
     activeSession = null;
     saveActive();
     updateHomeStatus();
