@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.64'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.65'; // アプリケーションのバージョン
 
 // ============================================================
 // 日本の祝日データ（2024〜2027年）
@@ -649,7 +649,7 @@ function isCurrentOT() {
   if (!activeSession || !currentUser) return false;
   const now = new Date();
   const today = toDateStr(now);
-  if (isHolidayOrSpecial(today)) return true;
+  if (isHolidayOrSpecial(today, now)) return true; // 時間休考慮
   const [sh, sm] = currentUser.workStart.split(':').map(Number);
   const [eh, em] = currentUser.workEnd.split(':').map(Number);
   const startMinTime = sh * 60 + sm;
@@ -845,8 +845,8 @@ function calculateRecordMinutes(rec) {
     vacation = totalMin;
   } else {
     // 通常日：就業時間内か外か
-    const [sh, sm] = currentUser.workStart.split(':').map(Number);
-    const [eh, em] = currentUser.workEnd.split(':').map(Number);
+    const [sh, sm] = currentUser.workStart.split(":").map(Number);
+    const [eh, em] = currentUser.workEnd.split(":").map(Number);
     const workStartMin = sh * 60 + sm;
     const workEndMin   = eh * 60 + em;
 
@@ -854,7 +854,11 @@ function calculateRecordMinutes(rec) {
     let cur = new Date(start);
     while (cur < end) {
       const curMin = cur.getHours() * 60 + cur.getMinutes();
-      if (curMin >= workStartMin && curMin < workEndMin) {
+      
+      // 時間休の判定を追加
+      if (isHolidayOrSpecial(date, cur)) {
+        vacation++;
+      } else if (curMin >= workStartMin && curMin < workEndMin) {
         normal++;
       } else {
         ot++;
@@ -1001,7 +1005,7 @@ function checkWorkSplit(now) {
   if (!activeSession || !currentUser || activeSession.type === BREAK_TYPE) return;
   
   const today = toDateStr(now);
-  if (isHolidayOrSpecial(today)) return; // 休日は分割不要
+  if (isHolidayOrSpecial(today, now)) return; // 休暇設定日（時間休含む）は分割不要
 
   const [sh, sm] = currentUser.workStart.split(':').map(Number);
   const [eh, em] = currentUser.workEnd.split(':').map(Number);
@@ -1796,7 +1800,7 @@ function applyHoliday() {
   showToast('保存しました');
 }
 
-function isHolidayOrSpecial(dateStr) {
+function isHolidayOrSpecial(dateStr, targetTime = null) {
   const d = new Date(dateStr + 'T00:00:00');
   const dow = d.getDay();
   if (dow === 0 || dow === 6) return true; // 土日
@@ -1807,6 +1811,19 @@ function isHolidayOrSpecial(dateStr) {
   const status = dayStatuses.find(s => s.date === dateStr);
   if (status) {
     if (status.status === 'holiday' || status.status === 'paid' || status.status === 'special') return true;
+    
+    // 時間休の場合、targetTime（Dateオブジェクト）が指定されていれば、その時間が時間休の範囲内か判定
+    if (status.status === 'hourly' && targetTime) {
+      const [sh, sm] = status.startTime.split(':').map(Number);
+      const [eh, em] = status.endTime.split(':').map(Number);
+      const startMin = sh * 60 + sm;
+      const endMin = eh * 60 + em;
+      const targetMin = targetTime.getHours() * 60 + targetTime.getMinutes();
+      
+      if (targetMin >= startMin && targetMin < endMin) {
+        return true;
+      }
+    }
   }
   return false;
 }
