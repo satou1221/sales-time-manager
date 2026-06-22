@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.66'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.67'; // アプリケーションのバージョン
 
 // ============================================================
 // 日本の祝日データ（2024〜2027年）
@@ -879,7 +879,10 @@ function calculateRecordMinutes(rec) {
   rec.breakMin    = brk;
   rec.partyMin    = party;
   rec.vacationMin = vacation;
-  rec.isSpecialDay = isHolidayOrSpecial(date);
+  // 時間休の場合は、その日の休暇設定自体は存在するため、isSpecialDayをtrueにする
+  // （isHolidayOrSpecial(date)は時間休の場合falseを返すため、dayStatusesを直接確認する）
+  const ds = dayStatuses.find(s => s.date === date);
+  rec.isSpecialDay = isHolidayOrSpecial(date) || (ds && ds.status === 'hourly');
 }
 
 // ============================================================
@@ -1185,6 +1188,9 @@ function renderTodayPage() {
     } else if (r.workType === PARTY_TYPE) {
       cls = 'party-rec';
       badges += '<span class="rec-badge badge-party">懇親会</span>';
+    } else if (r.vacationMin > 0) {
+      cls = 'state-vacation';
+      badges += '<span class="rec-badge badge-vacation" style="background-color: #4caf50; color: white;">休暇中業務</span>';
     } else if (recDateIsSpecial || (r.otMin > 0 && r.normalMin === 0)) {
       // 土日・祝日・有給の場合、または全時間が時間外の場合
       cls = 'overtime';
@@ -1204,6 +1210,11 @@ function renderTodayPage() {
       </div>
       <div class="hist-detail">
         ${durMin > 0 ? fmtMin(durMin) : ''}
+        ${r.normalMin > 0 ? ' 通常:' + fmtMin(r.normalMin) : ''}
+        ${r.otMin > 0 ? ' 時間外:' + fmtMin(r.otMin) : ''}
+        ${r.vacationMin > 0 ? ' 休暇中業務:' + fmtMin(r.vacationMin) : ''}
+        ${r.breakMin > 0 ? ' 休憩:' + fmtMin(r.breakMin) : ''}
+        ${r.partyMin > 0 ? ' 懇親会:' + fmtMin(r.partyMin) : ''}
         ${r.memo ? ' | ' + r.memo : ''}
       </div>
     </div>`;
@@ -1451,6 +1462,8 @@ function openDayDetail(date) {
         dCls = 'break-rec'; dBadges += '<span class="rec-badge badge-break">休憩</span>';
       } else if (r.workType === PARTY_TYPE) {
         dCls = 'party-rec'; dBadges += '<span class="rec-badge badge-party">懇親会</span>';
+      } else if (r.vacationMin > 0) {
+        dCls = 'state-vacation'; dBadges += '<span class="rec-badge badge-vacation" style="background-color: #4caf50; color: white;">休暇中業務</span>';
       } else if (dIsSpecial || (r.otMin > 0 && r.normalMin === 0)) {
         dCls = 'overtime'; dBadges += '<span class="rec-badge badge-ot">時間外</span>';
       } else if (r.otMin > 0) {
@@ -1466,6 +1479,7 @@ function openDayDetail(date) {
           ${durMin > 0 ? fmtMin(durMin) : ''}
           ${r.normalMin > 0 ? ' 通常:' + fmtMin(r.normalMin) : ''}
           ${r.otMin > 0 ? ' 時間外:' + fmtMin(r.otMin) : ''}
+          ${r.vacationMin > 0 ? ' 休暇中業務:' + fmtMin(r.vacationMin) : ''}
           ${r.breakMin > 0 ? ' 休憩:' + fmtMin(r.breakMin) : ''}
           ${r.partyMin > 0 ? ' 懇親会:' + fmtMin(r.partyMin) : ''}
           ${r.memo ? ' | ' + r.memo : ''}
