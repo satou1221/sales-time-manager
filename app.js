@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.65'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.66'; // アプリケーションのバージョン
 
 // ============================================================
 // 日本の祝日データ（2024〜2027年）
@@ -630,9 +630,20 @@ function updateHomeStatus() {
     if (partyBtn) partyBtn.classList.add('selected');
   } else {
     nameEl.textContent = activeSession.workType || '---';
-    // 通常 or 時間外判定
-    const stateLabel = isCurrentOT() ? '時間外業務' : '通常業務';
-    setBadge(badgeEl, stateLabel, 'state-working');
+    // 通常 or 時間外 or 休暇中業務判定
+    const now = new Date();
+    const today = toDateStr(now);
+    let stateLabel = '通常業務';
+    let stateCls = 'state-working';
+    
+    if (isHolidayOrSpecial(today, now)) {
+      stateLabel = '休暇中業務';
+      stateCls = 'state-vacation'; // CSSで定義が必要な場合は追加、既存のstate-workingでも可
+    } else if (isCurrentOT()) {
+      stateLabel = '時間外業務';
+    }
+    
+    setBadge(badgeEl, stateLabel, stateCls);
     // 該当する業務ボタンを選択状態にする
     const activeBtn = document.querySelector(`.wt-btn[data-type="${activeSession.workType}"]`);
     if (activeBtn) activeBtn.classList.add('selected');
@@ -649,7 +660,7 @@ function isCurrentOT() {
   if (!activeSession || !currentUser) return false;
   const now = new Date();
   const today = toDateStr(now);
-  if (isHolidayOrSpecial(today, now)) return true; // 時間休考慮
+  if (isHolidayOrSpecial(today, now)) return false; // 休暇中業務は時間外とは別扱い
   const [sh, sm] = currentUser.workStart.split(':').map(Number);
   const [eh, em] = currentUser.workEnd.split(':').map(Number);
   const startMinTime = sh * 60 + sm;
@@ -840,22 +851,18 @@ function calculateRecordMinutes(rec) {
     brk = totalMin;
   } else if (rec.workType === PARTY_TYPE) {
     party = totalMin;
-  } else if (isHolidayOrSpecial(date)) {
-    // 休日・有給・特休はすべて「休暇中業務」
-    vacation = totalMin;
   } else {
-    // 通常日：就業時間内か外か
+    // 1分ごとに判定（休日・有給・特休・時間休をすべてカバー）
     const [sh, sm] = currentUser.workStart.split(":").map(Number);
     const [eh, em] = currentUser.workEnd.split(":").map(Number);
     const workStartMin = sh * 60 + sm;
     const workEndMin   = eh * 60 + em;
 
-    // 1分ごとに判定
     let cur = new Date(start);
     while (cur < end) {
       const curMin = cur.getHours() * 60 + cur.getMinutes();
       
-      // 時間休の判定を追加
+      // 休暇中業務の判定（isHolidayOrSpecialに時刻を渡すことで時間休も判定）
       if (isHolidayOrSpecial(date, cur)) {
         vacation++;
       } else if (curMin >= workStartMin && curMin < workEndMin) {

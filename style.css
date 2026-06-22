@@ -229,6 +229,7 @@ html, body {
 .state-working { background: #27735a; color: var(--white); }
 .state-break   { background: #c0621a; color: var(--white); }
 .state-party   { background: #5e3d7a; color: var(--white); }
+.state-vacation { background: #00897b; color: var(--white); }
 .state-ended   { background: #3d5a68; color: #9bbfcc; }
 
 /* ④ 業務区分セクション */
