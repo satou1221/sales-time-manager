@@ -1,8 +1,8 @@
-const CACHE_NAME = 'stm-cache-v1.68';
+const CACHE_NAME = 'stm-cache-v1.69';
 const ASSETS = [
-  './index.html?v=1.68',
-  './app.js?v=1.68',
-  './style.css?v=1.68',
+  './index.html?v=1.69',
+  './app.js?v=1.69',
+  './style.css?v=1.69',
   './manifest.json'
 ];
 
