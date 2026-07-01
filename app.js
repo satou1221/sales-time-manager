@@ -9,7 +9,7 @@
 // 定数
 // ============================================================
 const WORK_TYPES = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
-const APP_VERSION = 'v1.67'; // アプリケーションのバージョン
+const APP_VERSION = 'v1.68'; // アプリケーションのバージョン
 
 // ============================================================
 // 日本の祝日データ（2024〜2027年）
@@ -1923,12 +1923,59 @@ function exportCSV() {
     navigator.share({
       files: [file],
       title: fileName
-    }).catch(() => {
-      _downloadFallback(blob, fileName);
+    }).catch((err) => {
+      console.log('Share canceled or failed', err);
     });
   } else {
-    _downloadFallback(blob, fileName);
+    showToast('お使いのブラウザは共有機能に対応していません。「デバイスに保存」をご利用ください。');
   }
+}
+
+// CSV出力（デバイスに保存）
+function exportCSVDownload() {
+  if (!currentUser) return;
+  const ym = `${viewMonth.year}-${String(viewMonth.month).padStart(2,'0')}`;
+  const monthRecs = records.filter(r => r.date && r.date.startsWith(ym))
+    .sort((a,b) => a.startTime.localeCompare(b.startTime));
+
+  if (monthRecs.length === 0) { showToast('出力するデータがありません'); return; }
+
+  // ヘッダー
+  let csv = '\uFEFF'; // BOM
+  csv += '社員番号,氏名,部門,役職,日付,曜日,業務区分,開始時間,終了時間,通常(分),時間外(分),休憩(分),懇親会(分),休暇中業務(分),メモ\n';
+
+  const dayNames = ['日','月','火','水','木','金','土'];
+
+  monthRecs.forEach(r => {
+    const d = new Date(r.date + 'T00:00:00');
+    const dow = dayNames[d.getDay()];
+    const startT = fmtTime(new Date(r.startTime));
+    const endT   = r.endTime ? fmtTime(new Date(r.endTime)) : '';
+    
+    const row = [
+      currentUser.empId || '',
+      currentUser.name,
+      currentUser.dept,
+      currentUser.role || '',
+      r.date,
+      dow,
+      r.workType,
+      startT,
+      endT,
+      r.normalMin || 0,
+      r.otMin || 0,
+      r.breakMin || 0,
+      r.partyMin || 0,
+      r.vacationMin || 0,
+      (r.memo || '').replace(/,/g, ' ')
+    ];
+    csv += row.join(',') + '\n';
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const fileName = `${viewMonth.year}年${viewMonth.month}月分_業務報告_${currentUser.name}.csv`;
+
+  _downloadFallback(blob, fileName);
 }
 
 function _downloadFallback(blob, fileName) {
